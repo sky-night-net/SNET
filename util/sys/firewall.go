@@ -2,7 +2,6 @@ package sys
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/sky-night-net/snet/logger"
 )

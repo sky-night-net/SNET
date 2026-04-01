@@ -1,6 +1,5 @@
 package entity
 
-import "github.com/sky-night-net/snet/database/model"
 
 type Msg struct {
 	Success bool        `json:"success"`
