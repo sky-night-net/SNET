@@ -20,7 +20,7 @@ fi
 
 # 2. Install Dependencies
 echo -e "${GREEN}1/4 Installing system dependencies...${NC}"
-apt-get update && apt-get install -y docker.io docker-compose curl git jq
+apt-get update && apt-get install -y docker.io docker-compose-v2 curl git jq
 
 # 3. Clone Repository (if not already in a repo)
 if [ ! -d ".git" ]; then
@@ -52,7 +52,7 @@ docker pull golang:alpine
 docker pull alpine:latest
 
 # Build and start services
-docker-compose up -d --build
+docker compose up -d --build
 
 # 5. Success
 echo -e "${BLUE}==================================================${NC}"

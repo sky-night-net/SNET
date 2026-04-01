@@ -24,9 +24,9 @@ fi
 
 echo -e "${GREEN}1/4 Stopping and removing SNET panel...${NC}"
 if [ -f "docker-compose.yml" ]; then
-    docker-compose down || true
+    docker compose down || true
 elif [ -d "/opt/SNET" ]; then
-    cd /opt/SNET && docker-compose down || true
+    cd /opt/SNET && docker compose down || true
 fi
 
 echo -e "${GREEN}2/4 Removing protocol containers and local images...${NC}"
