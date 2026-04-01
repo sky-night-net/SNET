@@ -13,6 +13,9 @@ RUN go mod download
 # Copy the rest of the source code
 COPY . .
 
+# Reconstruct go.sum and tidy modules since we renamed the git repo
+RUN go mod tidy
+
 # Build the application
 RUN CGO_ENABLED=1 GOOS=linux go build -o snet main.go
 
