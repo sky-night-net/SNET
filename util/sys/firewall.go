@@ -53,7 +53,7 @@ func (m *FirewallManager) addRuleOnlyIfMissing(table, chain, rule string) error 
 	return nil
 }
 
-func (m *FirewallManager) FlushAllSkyNetRules() {
+func (m *FirewallManager) FlushAllSNETRules() {
 	// Logic to cleanup all rules tagged with a specific comment if we use comments
 	// For now, simple cleanup is enough
 }

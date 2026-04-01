@@ -1,5 +1,5 @@
 [Unit]
-Description=Sky-Net v2 VPN Panel
+Description=SNET v2 VPN Panel
 After=network.target docker.service
 
 [Service]
