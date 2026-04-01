@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  snet:
+    build: .
+    image: snet-v2:latest
+    container_name: skynet-panel
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    volumes:
+      - /etc/skynet:/etc/skynet
+      - /var/log/skynet:/var/log/skynet
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - SKYNET_DB_FOLDER=/etc/skynet
+      - SKYNET_BIN_FOLDER=/app
+      - SKYNET_LOG_LEVEL=info
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
+    devices:
+      - /dev/net/tun:/dev/net/tun

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNET Control Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ant-design-vue/3.2.20/antd.min.css">
+    <style>
+        :root {
+            --primary-bg: #020617;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --card-hover: rgba(255, 255, 255, 0.07);
+        }
+        body {
+            background-color: var(--primary-bg);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+        }
+        .header {
+            padding: 20px 40px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo h2 {
+            margin: 0;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .main-content {
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .stat-card {
+            background: var(--glass-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            background: var(--card-hover);
+        }
+        .ant-table {
+            background: transparent !important;
+            color: #fff !important;
+        }
+        .ant-table-thead > tr > th {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: #fff !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        .ant-table-tbody > tr > td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+        .ant-table-tbody > tr:hover > td {
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+        .ant-tabs-nav::before { border-bottom-color: rgba(255, 255, 255, 0.1) !important; }
+        .ant-tabs-tab { color: rgba(255, 255, 255, 0.6) !important; }
+        .ant-tabs-tab-active { color: #38bdf8 !important; }
+        .ant-tabs-ink-bar { background: #38bdf8 !important; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <div class="logo"><h2>SNET</h2></div>
+            <a-space>
+                <a-button type="link" @click="handleLogout" style="color: rgba(255, 255, 255, 0.6)">Logout</a-button>
+            </a-space>
+        </div>
+
+        <div class="main-content">
+            <a-row :gutter="[24, 24]">
+                <a-col :span="12">
+                   <div class="stat-card">
+                       <h3>Traffic Analytics (24h)</h3>
+                       <canvas id="trafficChart" height="150"></canvas>
+                   </div>
+                </a-col>
+                <a-col :span="12">
+                    <div class="stat-card" style="height: 100%; display: flex; flex-direction: column;">
+                        <h3>System Logs (Live)</h3>
+                        <div id="logViewer" style="background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; height: 180px; overflow-y: auto; border-radius: 8px;"></div>
+                    </div>
+                </a-col>
+            </a-row>
+
+            <a-row :gutter="[24, 24]" style="margin-top: 24px">
+                <a-col :span="6">
+                    <div class="stat-card">
+                        <div style="color: rgba(255, 255, 255, 0.5)">CPU Usage</div>
+                        <h2 style="color: #fff; margin: 8px 0">{{ systemStatus.cpu }}%</h2>
+                        <a-progress :percent="systemStatus.cpu" :show-info="false" stroke-color="#38bdf8" />
+                    </div>
+                </a-col>
+                <a-col :span="6">
+                    <div class="stat-card">
+                        <div style="color: rgba(255, 255, 255, 0.5)">Memory</div>
+                        <h2 style="color: #fff; margin: 8px 0">{{ systemStatus.mem }}%</h2>
+                        <a-progress :percent="systemStatus.mem" :show-info="false" stroke-color="#818cf8" />
+                    </div>
+                </a-col>
+                <a-col :span="12">
+                    <div class="stat-card">
+                        <div style="color: rgba(255, 255, 255, 0.5)">System Uptime</div>
+                        <h2 style="color: #fff; margin: 8px 0">{{ formatUptime(systemStatus.uptime) }}</h2>
+                        <div style="color: rgba(255, 255, 255, 0.3)">Platform: {{ systemStatus.os }} {{ systemStatus.arch }}</div>
+                    </div>
+                </a-col>
+            </a-row>
+
+            <a-tabs default-active-key="inbounds" style="margin-top: 40px">
+                <a-tab-pane key="inbounds" tab="Inbounds & VPNs">
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px">
+                        <a-button type="primary" @click="showAddInbound">Create New Inbound</a-button>
+                    </div>
+                    <a-table :dataSource="inbounds" :columns="columns" :loading="loading" rowKey="id">
+                        <template #bodyCell="{ column, record }">
+                            <template v-if="column.key === 'protocol'">
+                                <a-tag color="blue">{{ record.protocol }}</a-tag>
+                            </template>
+                            <template v-if="column.key === 'enable'">
+                                <a-switch :checked="record.enable" @change="toggleEnable(record)" />
+                            </template>
+                            <template v-if="column.key === 'action'">
+                                <a-button type="link" size="small" @click="showClients(record)">Clients</a-button>
+                                <a-button type="link" size="small" v-if="isVPN(record.protocol)" @click="downloadConfig(record)">Config</a-button>
+                                <a-button type="link" size="small" danger @click="handleDelete(record)">Delete</a-button>
+                            </template>
+                        </template>
+                    </a-table>
+                </a-tab-pane>
+                <a-tab-pane key="settings" tab="System Settings">
+                    <a-row :gutter="24">
+                        <a-col :span="12">
+                            <div class="stat-card">
+                                <h3>SSL Management (Let's Encrypt)</h3>
+                                <a-form layout="vertical">
+                                    <a-form-item label="Domain">
+                                        <a-input v-model:value="ssl.domain" placeholder="vpn.example.com" />
+                                    </a-form-item>
+                                    <a-form-item label="Email">
+                                        <a-input v-model:value="ssl.email" placeholder="admin@example.com" />
+                                    </a-form-item>
+                                    <a-button type="primary" block @click="issueSSL">Issue Certificate</a-button>
+                                </a-form>
+                            </div>
+                        </a-col>
+                        <a-col :span="12">
+                            <div class="stat-card">
+                                <h3>Maintenance</h3>
+                                <a-space direction="vertical" style="width: 100%">
+                                    <a-button block @click="downloadBackup">Download System Backup (.zip)</a-button>
+                                    <a-button block danger @click="rebootPanel">Restart Panel Process</a-button>
+                                </a-space>
+                            </div>
+                        </a-col>
+                    </a-row>
+                </a-tab-pane>
+            </a-tabs>
+        </div>
+
+        <!-- Add Inbound Modal -->
+        <a-modal v-model:visible="inboundModal.visible" title="Inbound Configuration" @ok="saveInbound">
+            <a-form layout="vertical">
+                <a-form-item label="Remark"><a-input v-model:value="inboundModal.data.remark" /></a-form-item>
+                <a-form-item label="Protocol">
+                    <a-select v-model:value="inboundModal.data.protocol">
+                        <a-select-option value="vless">VLESS (Xray)</a-select-option>
+                        <a-select-option value="vmess">VMess (Xray)</a-select-option>
+                        <a-select-option value="amneziawg_v1">AmneziaWG v1</a-select-option>
+                        <a-select-option value="amneziawg_v2">AmneziaWG v2</a-select-option>
+                        <a-select-option value="openvpn_xor">OpenVPN XOR</a-select-option>
+                    </a-select>
+                </a-form-item>
+                <a-form-item label="Port"><a-input-number v-model:value="inboundModal.data.port" style="width: 100%" /></a-form-item>
+            </a-form>
+        </a-modal>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.2.47/vue.global.prod.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ant-design-vue/3.2.20/antd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <script>
+        const { createApp, ref, onMounted, reactive } = Vue;
+        const app = createApp({
+            setup() {
+                const loading = ref(false);
+                const inbounds = ref([]);
+                const systemStatus = ref({ cpu: 0, mem: 0, uptime: 0, os: '', arch: '' });
+                const ssl = reactive({ domain: '', email: '' });
+                const inboundModal = reactive({ visible: false, data: { remark: '', protocol: 'vless', port: 443 } });
+                let chart = null;
+
+                const initChart = () => {
+                   const ctx = document.getElementById('trafficChart').getContext('2d');
+                   chart = new Chart(ctx, {
+                       type: 'line',
+                       data: {
+                           labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                           datasets: [
+                               { label: 'Upload (MB)', borderColor: '#38bdf8', data: Array(24).fill(0), fill: true, backgroundColor: 'rgba(56, 189, 248, 0.1)' },
+                               { label: 'Download (MB)', borderColor: '#818cf8', data: Array(24).fill(0), fill: true, backgroundColor: 'rgba(129, 140, 248, 0.1)' }
+                           ]
+                       },
+                       options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+                   });
+                };
+
+                const initLogs = () => {
+                    const viewer = document.getElementById('logViewer');
+                    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/api/logs`);
+                    ws.onmessage = (e) => {
+                        const data = JSON.parse(e.data);
+                        if (data.type === 'log') {
+                           const div = document.createElement('div');
+                           div.textContent = `> ${data.msg}`;
+                           viewer.appendChild(div);
+                           viewer.scrollTop = viewer.scrollHeight;
+                        }
+                    };
+                };
+
+                const columns = [
+                    { title: 'Remark', dataIndex: 'remark', key: 'remark' },
+                    { title: 'Protocol', dataIndex: 'protocol', key: 'protocol' },
+                    { title: 'Port', dataIndex: 'port', key: 'port' },
+                    { title: 'Traffic Up', dataIndex: 'up', key: 'up', customRender: ({text}) => (text/1024/1024/1024).toFixed(2) + ' GB' },
+                    { title: 'Traffic Down', dataIndex: 'down', key: 'down', customRender: ({text}) => (text/1024/1024/1024).toFixed(2) + ' GB' },
+                    { title: 'Status', dataIndex: 'enable', key: 'enable' },
+                    { title: 'Action', key: 'action' }
+                ];
+
+                const fetchStatus = async () => {
+                    const res = await axios.get('/api/status');
+                    if (res.data.success) systemStatus.value = res.data.obj;
+                };
+
+                const fetchInbounds = async () => {
+                    loading.value = true;
+                    try {
+                        const res = await axios.get('/api/inbound/list');
+                        if (res.data.success) inbounds.value = res.data.obj;
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const toggleEnable = async (record) => {
+                    await axios.post(`/api/inbound/update/${record.id}`, { enable: !record.enable });
+                    fetchInbounds();
+                };
+
+                const isVPN = (proto) => proto.includes('amnezia') || proto.includes('openvpn');
+
+                const downloadConfig = (record) => {
+                    window.open(`/api/download/${record.id}?clientId=0`, '_blank');
+                };
+
+                const issueSSL = async () => {
+                    const res = await axios.post('/api/issue', ssl, { headers: {'Content-Type': 'application/x-www-form-urlencoded'} });
+                    if (res.data.success) antd.message.success(res.data.msg);
+                    else antd.message.error(res.data.msg);
+                };
+
+                const downloadBackup = () => window.open('/api/backup/download', '_blank');
+
+                const formatUptime = (s) => {
+                    const d = Math.floor(s / (24 * 3600));
+                    const h = Math.floor((s % (24 * 3600)) / 3600);
+                    const m = Math.floor((s % 3600) / 60);
+                    return `${d}d ${h}h ${m}m`;
+                };
+
+                const handleLogout = async () => {
+                    await axios.post('/logout');
+                    window.location.href = '/login';
+                };
+
+                onMounted(() => {
+                    fetchStatus();
+                    fetchInbounds();
+                    initChart();
+                    initLogs();
+                    setInterval(fetchStatus, 5000);
+                });
+
+                return { inbounds, columns, loading, systemStatus, formatUptime, handleLogout, toggleEnable, isVPN, downloadConfig, ssl, issueSSL, downloadBackup, inboundModal, showAddInbound: () => inboundModal.visible = true, saveInbound: () => { inboundModal.visible = false; } };
+            }
+        });
+        app.use(antd);
+        app.mount('#app');
+    </script>
+</body>
+</html>

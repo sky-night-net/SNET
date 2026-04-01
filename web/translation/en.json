@@ -1,0 +1,24 @@
+{
+    "pages": {
+        "login": {
+            "title": "Access Control Center",
+            "username": "Username",
+            "password": "Password",
+            "login_btn": "Enter SNET"
+        },
+        "dashboard": {
+            "title": "SNET Dashboard",
+            "system": "System Status",
+            "cpu": "CPU Load",
+            "mem": "Memory",
+            "uptime": "System Uptime",
+            "inbounds": "Inbounds & VPNs",
+            "add_inbound": "Create New Inbound",
+            "remark": "Remark",
+            "protocol": "Protocol",
+            "port": "Port",
+            "traffic": "Bandwidth Usage",
+            "actions": "Actions"
+        }
+    }
+}

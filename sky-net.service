@@ -1,0 +1,16 @@
+[Unit]
+Description=Sky-Net v2 VPN Panel
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/app
+ExecStart=/app/skynet-v2 run
+Restart=always
+RestartSec=5
+Environment=SKYNET_BIN_FOLDER=/app
+Environment=SKYNET_DB_FOLDER=/etc/skynet
+
+[Install]
+WantedBy=multi-user.target

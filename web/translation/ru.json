@@ -1,0 +1,24 @@
+{
+    "pages": {
+        "login": {
+            "title": "Центр Управления",
+            "username": "Имя пользователя",
+            "password": "Пароль",
+            "login_btn": "Войти в SNET"
+        },
+        "dashboard": {
+            "title": "Панель Управления SNET",
+            "system": "Статус Системы",
+            "cpu": "Нагрузка CPU",
+            "mem": "Память",
+            "uptime": "Время работы",
+            "inbounds": "Подключения и VPN",
+            "add_inbound": "Создать подключение",
+            "remark": "Заметка",
+            "protocol": "Протокол",
+            "port": "Порт",
+            "traffic": "Трафик",
+            "actions": "Действия"
+        }
+    }
+}
