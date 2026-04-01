@@ -24,10 +24,10 @@ apt-get update && apt-get install -y docker.io docker-compose curl git jq
 
 # 3. Clone Repository (if not already in a repo)
 if [ ! -d ".git" ]; then
-    echo -e "${GREEN}2/4 Cloning SNET v2 repository...${NC}"
-    rm -rf /opt/snet-v2
-    git clone https://github.com/sky-night-net/snet-v2.git /opt/snet-v2
-    cd /opt/snet-v2
+    echo -e "${GREEN}2/4 Cloning SNET repository...${NC}"
+    rm -rf /opt/SNET
+    git clone https://github.com/sky-night-net/SNET.git /opt/SNET
+    cd /opt/SNET
 else
     echo -e "${GREEN}2/4 Using local repository source...${NC}"
 fi

@@ -15,7 +15,7 @@
 Run the following command on your server to install all dependencies and start the panel:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sky-night-net/snet-v2/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/sky-night-net/SNET/main/install.sh | sudo bash
 ```
 
 ### Manual Installation
@@ -29,8 +29,8 @@ If you prefer to set up the repository manually, follow these steps:
 
 2. **Clone and Run**:
    ```bash
-   git clone https://github.com/sky-night-net/snet-v2.git
-   cd snet-v2
+   git clone https://github.com/sky-night-net/SNET.git
+   cd SNET
    sudo docker-compose up -d --build
    ```
 
