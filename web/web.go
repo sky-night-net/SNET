@@ -77,7 +77,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	engine.Static("/static", "./web/static")
 	
 	store := session.NewStore()
-	engine.Use(sessions.Sessions("snet-v2", store))
+	engine.Use(sessions.Sessions(session.SessionName, store))
 	
 	basePath, _ := s.settingService.GetBasePath()
 	

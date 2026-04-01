@@ -1,10 +1,17 @@
 package session
 
 import (
+	"encoding/gob"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/sky-night-net/snet/database/model"
 )
+
+func init() {
+	gob.Register(model.User{})
+}
 
 const (
 	SessionName = "SNET_SESSION"
