@@ -4,7 +4,15 @@ FROM golang:alpine AS builder
 WORKDIR /app
 
 # Install build dependencies
-RUN apk add --no-cache git gcc musl-dev
+RUN apk add --no-cache git gcc musl-dev curl
+
+# Create static directory and download assets
+RUN mkdir -p web/static && \
+    curl -L https://unpkg.com/vue@3.2.47/dist/vue.global.prod.js -o web/static/vue.js && \
+    curl -L https://unpkg.com/ant-design-vue@3.2.20/dist/antd.min.js -o web/static/antd.js && \
+    curl -L https://unpkg.com/ant-design-vue@3.2.20/dist/antd.min.css -o web/static/antd.css && \
+    curl -L https://unpkg.com/axios@1.3.4/dist/axios.min.js -o web/static/axios.js && \
+    curl -L https://unpkg.com/chart.js@3.9.1/dist/chart.min.js -o web/static/chart.js
 
 # Copy go.mod and optional go.sum, then download dependencies
 COPY go.mod go.sum* ./
@@ -32,6 +40,7 @@ COPY --from=builder /app/snet .
 
 # Copy HTML templates and static assets
 COPY --from=builder /app/web/html ./web/html
+COPY --from=builder /app/web/static ./web/static
 
 # Create folders for logs and database
 RUN mkdir -p /etc/snet /var/log/snet

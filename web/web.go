@@ -74,6 +74,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	engine := gin.Default()
 	engine.Use(gzip.Gzip(gzip.DefaultCompression))
+	engine.Static("/static", "./web/static")
 	
 	store := session.NewStore()
 	engine.Use(sessions.Sessions("snet-v2", store))
