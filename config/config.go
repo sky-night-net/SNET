@@ -72,6 +72,14 @@ func GetEnvPanelPort() int {
 	return port
 }
 
+func GetEnvBindAddress() string {
+	b := os.Getenv("SNET_BIND_ADDRESS")
+	if b == "" {
+		return "0.0.0.0"
+	}
+	return b
+}
+
 func getBaseDir() string {
 	exePath, err := os.Executable()
 	if err != nil {

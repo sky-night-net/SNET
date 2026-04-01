@@ -36,11 +36,8 @@ COPY --from=builder /app/web/html ./web/html
 # Create folders for logs and database
 RUN mkdir -p /etc/snet /var/log/snet
 
-# Persistence volumes
+# Volume definitions at the end
 VOLUME ["/etc/snet", "/var/log/snet"]
-
-# Port for the panel and subscription server
-EXPOSE 2053 2054
 
 # Run SNET
 CMD ["./snet", "run"]

@@ -18,6 +18,7 @@ services:
       - SNET_LOG_LEVEL=info
       - SNET_SERVER_IP=${SNET_SERVER_IP:-}
       - SNET_PANEL_PORT=${SNET_PANEL_PORT:-2053}
+      - SNET_BIND_ADDRESS=${SNET_BIND_ADDRESS:-0.0.0.0}
     cap_add:
       - NET_ADMIN
       - SYS_PTRACE

@@ -148,7 +148,8 @@ func (s *Server) Start() error {
 	}
 
 	port, _ := s.settingService.GetPort()
-	listenAddr := net.JoinHostPort("0.0.0.0", strconv.Itoa(port))
+	bind := config.GetEnvBindAddress()
+	listenAddr := net.JoinHostPort(bind, strconv.Itoa(port))
 	
 	listener, err := net.Listen("tcp", listenAddr)
 	if err != nil {
