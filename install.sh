@@ -32,6 +32,19 @@ else
     echo -e "${GREEN}2/4 Using local repository source...${NC}"
 fi
 
+# 3.b Configure IP & Port
+DETECTED_IP=$(curl -s ifconfig.me || echo "")
+echo -e "${BLUE}Configuration:${NC}"
+read -p "Enter Panel Port [default 2053]: " SNET_PANEL_PORT
+SNET_PANEL_PORT=${SNET_PANEL_PORT:-2053}
+
+read -p "Enter Server IP [default $DETECTED_IP]: " SNET_SERVER_IP
+SNET_SERVER_IP=${SNET_SERVER_IP:-$DETECTED_IP}
+
+# Write to .env for docker-compose
+echo "SNET_SERVER_IP=$SNET_SERVER_IP" > .env
+echo "SNET_PANEL_PORT=$SNET_PANEL_PORT" >> .env
+
 # 4. Pull Protocol Images & Build Panel
 echo -e "${GREEN}3/4 Preparing protocol images and building panel...${NC}"
 # Pre-pull base images for faster build
@@ -44,7 +57,7 @@ docker-compose up -d --build
 # 5. Success
 echo -e "${BLUE}==================================================${NC}"
 echo -e "${GREEN}✅ SNET v2 was successfully installed!${NC}"
-echo -e "Access the panel at: ${BLUE}http://$(curl -s ifconfig.me):2053${NC}"
+echo -e "Access the panel at: ${BLUE}http://$SNET_SERVER_IP:$SNET_PANEL_PORT${NC}"
 echo -e "Default credentials: ${BLUE}admin / admin${NC}"
 echo -e "${BLUE}==================================================${NC}"
 echo -e "Logs can be viewed with: ${BLUE}docker-compose logs -f${NC}"

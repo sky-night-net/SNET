@@ -2,8 +2,8 @@ package builder
 
 import (
 	"encoding/json"
-	"fmt"
 
+	"github.com/sky-night-net/snet/util/json_util"
 	"github.com/sky-night-net/snet/xray"
 )
 
@@ -19,7 +19,7 @@ func NewXrayConfigBuilder() *XrayConfigBuilder {
 				{
 					Protocol: "vless",
 					Port:     10085, // Default API port for 3x-ui style
-					Listen:   "127.0.0.1",
+					Listen:   json_util.RawMessage(`"127.0.0.1"`),
 					Tag:      "api",
 					Settings: json.RawMessage(`{}`),
 				},

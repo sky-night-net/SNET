@@ -42,6 +42,10 @@ func (s *SettingService) GetBasePath() (string, error) {
 	return val, nil
 }
 
+func (s *SettingService) GetServerIP() (string, error) {
+	return s.GetSetting("server_ip")
+}
+
 func (s *SettingService) GetSecret() ([]byte, error) {
 	val, err := s.GetSetting("web_secret")
 	if err != nil {

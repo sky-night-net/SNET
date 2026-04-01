@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -56,6 +57,19 @@ func GetBinFolderPath() string {
 		p = "bin"
 	}
 	return p
+}
+
+func GetEnvServerIP() string {
+	return os.Getenv("SNET_SERVER_IP")
+}
+
+func GetEnvPanelPort() int {
+	p := os.Getenv("SNET_PANEL_PORT")
+	if p == "" {
+		return 0
+	}
+	port, _ := strconv.Atoi(p)
+	return port
 }
 
 func getBaseDir() string {

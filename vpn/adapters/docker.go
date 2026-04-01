@@ -2,14 +2,11 @@ package adapters
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/sky-night-net/snet/database/model"
 )
 
 type DockerBaseAdapter struct {
@@ -37,26 +34,26 @@ func (a *DockerBaseAdapter) IsContainerRunning(ctx context.Context, name string)
 
 func (a *DockerBaseAdapter) StopAndRemove(ctx context.Context, name string) error {
 	_ = a.cli.ContainerStop(ctx, name, container.StopOptions{})
-	return a.cli.ContainerRemove(ctx, name, types.ContainerRemoveOptions{Force: true})
+	return a.cli.ContainerRemove(ctx, name, container.RemoveOptions{Force: true})
 }
 
 func (a *DockerBaseAdapter) ExecuteInContainer(ctx context.Context, name string, cmd []string) (string, error) {
-    execConfig := types.ExecConfig{
-        AttachStdout: true,
-        AttachStderr: true,
-        Cmd:          cmd,
-    }
-    resp, err := a.cli.ContainerExecCreate(ctx, name, execConfig)
-    if err != nil {
-        return "", err
-    }
-    
-    attach, err := a.cli.ContainerExecAttach(ctx, resp.ID, types.ExecStartCheck{})
-    if err != nil {
-        return "", err
-    }
-    defer attach.Close()
-    
-    data, err := io.ReadAll(attach.Reader)
-    return string(data), err
+	execConfig := types.ExecConfig{
+		AttachStdout: true,
+		AttachStderr: true,
+		Cmd:          cmd,
+	}
+	resp, err := a.cli.ContainerExecCreate(ctx, name, execConfig)
+	if err != nil {
+		return "", err
+	}
+
+	attach, err := a.cli.ContainerExecAttach(ctx, resp.ID, types.ExecStartCheck{})
+	if err != nil {
+		return "", err
+	}
+	defer attach.Close()
+
+	data, err := io.ReadAll(attach.Reader)
+	return string(data), err
 }

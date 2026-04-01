@@ -46,7 +46,7 @@ func (a *AmneziaWGv2Adapter) GenerateServerConfig(inbound *model.Inbound) (strin
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 
 	var obfs map[string]interface{}
-	json.Unmarshal([]byte(inbound.Obfuscation), &obfs)
+	json.Unmarshal([]byte(inbound.StreamSettings), &obfs)
 	for k, v := range DEFAULT_AWG_V2_OBFUSCATION {
 		if _, ok := obfs[k]; !ok {
 			obfs[k] = v
@@ -106,7 +106,7 @@ func (a *AmneziaWGv2Adapter) GenerateClientConfig(inbound *model.Inbound, client
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 
 	var obfs map[string]interface{}
-	json.Unmarshal([]byte(inbound.Obfuscation), &obfs)
+	json.Unmarshal([]byte(inbound.StreamSettings), &obfs)
 	for k, v := range DEFAULT_AWG_V2_OBFUSCATION {
 		if _, ok := obfs[k]; !ok {
 			obfs[k] = v

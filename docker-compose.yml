@@ -16,6 +16,8 @@ services:
       - SNET_DB_FOLDER=/etc/snet
       - SNET_BIN_FOLDER=/app
       - SNET_LOG_LEVEL=info
+      - SNET_SERVER_IP=${SNET_SERVER_IP:-}
+      - SNET_PANEL_PORT=${SNET_PANEL_PORT:-2053}
     cap_add:
       - NET_ADMIN
       - SYS_PTRACE

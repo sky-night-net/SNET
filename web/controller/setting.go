@@ -24,9 +24,11 @@ func (c *SettingController) GetAll(ctx *gin.Context) {
 	settings := entity.AllSetting{}
 	port, _ := c.settingService.GetPort()
 	basePath, _ := c.settingService.GetBasePath()
+	serverIP, _ := c.settingService.GetServerIP()
 	
 	settings.WebPort = port
 	settings.WebBasePath = basePath
+	settings.ServerIP = serverIP
 	
 	ctx.JSON(http.StatusOK, entity.Msg{Success: true, Obj: settings})
 }

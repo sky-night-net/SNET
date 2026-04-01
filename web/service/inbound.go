@@ -2,25 +2,23 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 
 	"github.com/sky-night-net/snet/database"
 	"github.com/sky-night-net/snet/database/model"
 	"github.com/sky-night-net/snet/logger"
-	"github.com/sky-night-net/snet/xray"
-	"gorm.io/gorm"
 )
 
 type InboundService struct {
-	vpnService  *VPNService
-	xrayService *XrayService
+	vpnService     *VPNService
+	xrayService    *XrayService
+	settingService *SettingService
 }
 
-func NewInboundService(vpnService *VPNService, xrayService *XrayService) *InboundService {
+func NewInboundService(vpnService *VPNService, xrayService *XrayService, settingService *SettingService) *InboundService {
 	return &InboundService{
-		vpnService:  vpnService,
-		xrayService: xrayService,
+		vpnService:     vpnService,
+		xrayService:    xrayService,
+		settingService: settingService,
 	}
 }
 
@@ -40,6 +38,24 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 
 func (s *InboundService) AddInbound(inbound *model.Inbound) error {
 	db := database.GetDB()
+
+	// Pre-fill server_ip from global settings if missing in VPN inbounds
+	if s.IsVPN(inbound.Protocol) {
+		var settings map[string]interface{}
+		json.Unmarshal([]byte(inbound.Settings), &settings)
+		if sip, ok := settings["server_ip"].(string); !ok || sip == "" {
+			globalIP, _ := s.settingService.GetServerIP()
+			if globalIP != "" {
+				if settings == nil {
+					settings = make(map[string]interface{})
+				}
+				settings["server_ip"] = globalIP
+				newSettings, _ := json.Marshal(settings)
+				inbound.Settings = string(newSettings)
+			}
+		}
+	}
+
 	err := db.Create(inbound).Error
 	if err != nil {
 		return err
@@ -108,7 +124,7 @@ func (s *InboundService) NotifyXrayRestart() {
 	// to avoid multiple restarts when multiple inbounds change.
 	// For now, let's just build the config and restart.
 	logger.Info("Triggering Xray restart due to inbound changes")
-	
+
 	// Implementation of full Xray config generation goes here
 }
 
@@ -120,24 +136,20 @@ func (s *InboundService) AddClient(client *model.Client) error {
 	if err != nil {
 		return err
 	}
-	
+
 	inbound, err := s.GetInbound(client.InboundId)
 	if err != nil {
 		return err
 	}
-	
+
 	if s.IsVPN(inbound.Protocol) && inbound.Enable && client.Enable {
-		adapter, _ := s.vpnService.manager.GetAdapter(inbound.Protocol) // Need export or access
-		// Wait, I should use vpnService methods
-		// Actually, VPN adapters expect peer addition to be handled by Start/Restart for simplicity
-		// or via a dedicated AddClient if supported.
 		return s.SyncInbound(inbound)
 	}
-	
+
 	if !s.IsVPN(inbound.Protocol) {
 		s.NotifyXrayRestart()
 	}
-	
+
 	return nil
 }
 
@@ -147,7 +159,7 @@ func (s *InboundService) UpdateClient(client *model.Client) error {
 	if err != nil {
 		return err
 	}
-	
+
 	inbound, err := s.GetInbound(client.InboundId)
 	if err == nil {
 		return s.SyncInbound(inbound)
@@ -161,9 +173,9 @@ func (s *InboundService) DelClient(id int) error {
 	if err := db.First(&client, id).Error; err != nil {
 		return err
 	}
-	
+
 	inbound, _ := s.GetInbound(client.InboundId)
-	
+
 	err := db.Delete(&model.Client{}, id).Error
 	if err == nil && inbound != nil {
 		s.SyncInbound(inbound)

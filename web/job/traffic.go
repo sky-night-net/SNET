@@ -1,8 +1,6 @@
 package job
 
 import (
-	"time"
-
 	"github.com/sky-night-net/snet/database"
 	"github.com/sky-night-net/snet/database/model"
 	"github.com/sky-night-net/snet/logger"
@@ -56,19 +54,19 @@ func (j *TrafficJob) Run() {
 			if err != nil {
 				continue
 			}
-			
+
 			var totalUp, totalDown int64
 			for email, t := range stats {
 				totalUp += t.Up
 				totalDown += t.Down
-				
+
 				// Update client
 				db.Model(&model.Client{}).Where("inbound_id = ? AND email = ?", ib.Id, email).Updates(map[string]interface{}{
 					"up":   gorm.Expr("up + ?", t.Up),
 					"down": gorm.Expr("down + ?", t.Down),
 				})
 			}
-			
+
 			// Update inbound total
 			db.Model(&model.Inbound{}).Where("id = ?", ib.Id).Updates(map[string]interface{}{
 				"up":   gorm.Expr("up + ?", totalUp),

@@ -24,11 +24,11 @@ func NewServerController(g *gin.RouterGroup) *ServerController {
 
 func (c *ServerController) GetStatus(ctx *gin.Context) {
 	v, _ := mem.VirtualMemory()
-	c, _ := cpu.Percent(time.Second, false)
+	cpuPercents, _ := cpu.Percent(time.Second, false)
 	h, _ := host.Info()
 
 	status := gin.H{
-		"cpu":    c[0],
+		"cpu":    cpuPercents[0],
 		"mem":    v.UsedPercent,
 		"uptime": h.Uptime,
 		"os":     runtime.GOOS,

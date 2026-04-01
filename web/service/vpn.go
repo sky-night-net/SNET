@@ -28,10 +28,6 @@ func (s *VPNService) RestartInbound(inbound *model.Inbound) error {
 	return s.manager.RestartInbound(inbound)
 }
 
-func (s *VPNService) SyncAll() error {
-	return s.manager.SyncAll()
-}
-
 func (s *VPNService) GetTraffic(inbound *model.Inbound) (map[string]adapters.Traffic, error) {
 	return s.manager.GetTraffic(inbound)
 }

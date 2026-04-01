@@ -2,7 +2,6 @@ package sub
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -37,17 +36,17 @@ func (s *Server) initRouter() *gin.Engine {
 	engine := gin.Default()
 
 	engine.GET("/sub/:token", s.GetSubscription)
-	
+
 	return engine
 }
 
 func (s *Server) GetSubscription(ctx *gin.Context) {
 	token := ctx.Param("token")
-	
+
 	// 1. Find client by subscription token
 	// For now, let's assume token is SubID or client email for lookup
 	// In a real implementation, we'd have a separate SubToken field
-	
+
 	// For demo: build a unified config base64
 	builder := NewConfigBuilder(s.inboundService)
 	content, err := builder.BuildBase64(token)
@@ -55,7 +54,7 @@ func (s *Server) GetSubscription(ctx *gin.Context) {
 		ctx.String(http.StatusNotFound, "Subscription not found")
 		return
 	}
-	
+
 	ctx.Header("Subscription-Userinfo", "upload=0;download=0;total=0;expire=0")
 	ctx.String(http.StatusOK, content)
 }

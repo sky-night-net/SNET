@@ -1,15 +1,15 @@
 package adapters
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"github.com/docker/docker/api/types/container"
 	"github.com/sky-night-net/snet/database/model"
-	"github.com/sky-night-net/snet/logger"
 	"github.com/sky-night-net/snet/util/sys"
 )
 
@@ -32,7 +32,7 @@ func (a *OpenVPNXORAdapter) Protocol() model.Protocol {
 
 const (
 	OpenVPNConfigDir = "/etc/openvpn"
-	EasyRSADir      = "/etc/openvpn/easy-rsa"
+	EasyRSADir       = "/etc/openvpn/easy-rsa"
 	OpenVPNStatusLog = "/var/log/openvpn/status.log"
 )
 
@@ -40,7 +40,7 @@ func (a *OpenVPNXORAdapter) Start(inbound *model.Inbound) error {
 	ctx := context.Background()
 	iface := fmt.Sprintf("tun_snet%d", inbound.Id)
 	containerName := fmt.Sprintf("snet_openvpn_xor_%d", inbound.Id)
-	
+
 	// Generate server config
 	conf, _ := a.GenerateServerConfig(inbound)
 	confPath := fmt.Sprintf("%s/server_%d.conf", OpenVPNConfigDir, inbound.Id)
@@ -58,7 +58,7 @@ func (a *OpenVPNXORAdapter) Start(inbound *model.Inbound) error {
 		NetworkMode: "host",
 		Privileged:  true,
 		CapAdd:      []string{"NET_ADMIN", "SYS_PTRACE"},
-		Binds:       []string{
+		Binds: []string{
 			fmt.Sprintf("%s:/etc/openvpn", OpenVPNConfigDir),
 			"/var/log/openvpn:/var/log/openvpn",
 		},
@@ -73,17 +73,17 @@ func (a *OpenVPNXORAdapter) Start(inbound *model.Inbound) error {
 		return err
 	}
 
-	return a.cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
+	return a.cli.ContainerStart(ctx, resp.ID, container.StartOptions{})
 }
 
 func (a *OpenVPNXORAdapter) Stop(inbound *model.Inbound) error {
 	ctx := context.Background()
 	containerName := fmt.Sprintf("snet_openvpn_xor_%d", inbound.Id)
 	iface := fmt.Sprintf("tun_snet%d", inbound.Id)
-	
+
 	a.StopAndRemove(ctx, containerName)
 	sys.Execute(fmt.Sprintf("ip link delete %s", iface))
-	
+
 	return nil
 }
 
@@ -112,12 +112,12 @@ func (a *OpenVPNXORAdapter) GenerateKeypair() (KeyPair, error) {
 	if _, err := os.Stat(filepath.Join(EasyRSADir, "pki")); os.IsNotExist(err) {
 		os.RemoveAll(EasyRSADir)
 		os.MkdirAll(filepath.Dir(EasyRSADir), 0755)
-		
+
 		sys.Execute(fmt.Sprintf("make-cadir %s", EasyRSADir))
 		sys.Execute(fmt.Sprintf("bash -c 'cd %s && ./easyrsa init-pki && EASYRSA_BATCH=1 ./easyrsa build-ca nopass && EASYRSA_BATCH=1 ./easyrsa build-server-full server nopass && ./easyrsa gen-dh'", EasyRSADir))
 		sys.Execute(fmt.Sprintf("openvpn --genkey --secret %s/pki/ta.key", EasyRSADir))
 	}
-	
+
 	return KeyPair{
 		PublicKey: "ca_initialized", // Dummy for interface
 	}, nil
@@ -126,21 +126,21 @@ func (a *OpenVPNXORAdapter) GenerateKeypair() (KeyPair, error) {
 func (a *OpenVPNXORAdapter) GenerateServerConfig(inbound *model.Inbound) (string, error) {
 	var settings map[string]interface{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
-	
+
 	var obfs map[string]interface{}
-	json.Unmarshal([]byte(inbound.Obfuscation), &obfs)
-	
+	json.Unmarshal([]byte(inbound.StreamSettings), &obfs)
+
 	port := inbound.Port
 	scramblePassword := ""
 	if sp, ok := obfs["scramble_password"].(string); ok {
 		scramblePassword = sp
 	}
-	
+
 	proto := "udp"
 	if p, ok := settings["proto"].(string); ok {
 		proto = p
 	}
-	
+
 	cipher := "AES-256-CBC"
 	if c, ok := settings["cipher"].(string); ok {
 		cipher = c
@@ -150,12 +150,12 @@ func (a *OpenVPNXORAdapter) GenerateServerConfig(inbound *model.Inbound) (string
 	if a, ok := settings["address"].(string); ok {
 		addressFull = a
 	}
-	
+
 	// Simplify CIDR to network/mask
 	parts := strings.Split(addressFull, "/")
 	network := parts[0]
 	mask := "255.255.255.0" // Default for /24
-	
+
 	scrambleLine := ""
 	if scramblePassword != "" {
 		scrambleLine = fmt.Sprintf("scramble obfuscate %s", scramblePassword)
@@ -195,26 +195,26 @@ mssfix 1350
 func (a *OpenVPNXORAdapter) GenerateClientConfig(inbound *model.Inbound, client *model.Client) (string, error) {
 	var settings map[string]interface{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
-	
+
 	var obfs map[string]interface{}
-	json.Unmarshal([]byte(inbound.Obfuscation), &obfs)
-	
+	json.Unmarshal([]byte(inbound.StreamSettings), &obfs)
+
 	port := inbound.Port
 	serverIP := ""
 	if sip, ok := settings["server_ip"].(string); ok {
 		serverIP = sip
 	}
-	
+
 	scramblePassword := ""
 	if sp, ok := obfs["scramble_password"].(string); ok {
 		scramblePassword = sp
 	}
-	
+
 	proto := "udp"
 	if p, ok := settings["proto"].(string); ok {
 		proto = p
 	}
-	
+
 	cipher := "AES-256-CBC"
 	if c, ok := settings["cipher"].(string); ok {
 		cipher = c
@@ -285,7 +285,7 @@ func (a *OpenVPNXORAdapter) GetTraffic(inbound *model.Inbound) (map[string]Traff
 	if err != nil {
 		return nil, err
 	}
-	
+
 	trafficMap := make(map[string]Traffic)
 	lines := strings.Split(string(content), "\n")
 	for _, line := range lines {
@@ -299,7 +299,7 @@ func (a *OpenVPNXORAdapter) GetTraffic(inbound *model.Inbound) (map[string]Traff
 				fmt.Sscanf(parts[2], "%d", &rx)
 				fmt.Sscanf(parts[3], "%d", &tx)
 				trafficMap[parts[0]] = Traffic{
-					Up: tx,
+					Up:   tx,
 					Down: rx,
 				}
 			}

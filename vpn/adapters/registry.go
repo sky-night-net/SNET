@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"fmt"
+
 	"github.com/sky-night-net/snet/database/model"
 )
 

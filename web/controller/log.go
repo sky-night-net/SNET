@@ -32,7 +32,7 @@ func (c *LogController) StreamLogs(ctx *gin.Context) {
 	defer ws.Close()
 
 	// Initial burst of logs from buffer
-	buffer := logger.GetLogBuffer()
+	buffer := logger.GetLogs(5000, "")
 	for _, line := range buffer {
 		msg, _ := json.Marshal(map[string]string{"type": "log", "msg": line})
 		if ws.WriteMessage(websocket.TextMessage, msg) != nil {
@@ -48,7 +48,7 @@ func (c *LogController) StreamLogs(ctx *gin.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			currentBuffer := logger.GetLogBuffer()
+			currentBuffer := logger.GetLogs(5000, "")
 			if len(currentBuffer) > lastIndex {
 				for i := lastIndex; i < len(currentBuffer); i++ {
 					msg, _ := json.Marshal(map[string]string{"type": "log", "msg": currentBuffer[i]})

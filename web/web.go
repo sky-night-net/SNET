@@ -2,10 +2,8 @@ package web
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -51,7 +49,7 @@ func NewServer() *Server {
 		xrayService:    &service.XrayService{},
 		vpnService:     service.NewVPNService(vpnMgr),
 	}
-	s.inboundService = service.NewInboundService(s.vpnService, s.xrayService)
+	s.inboundService = service.NewInboundService(s.vpnService, s.xrayService, s.settingService)
 	
 	// Start the self-healing reconciler
 	vpnMgr.StartReconciler()
@@ -100,7 +98,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	
 	// Public routes
 	public := engine.Group(basePath)
-	indexCtrl := controller.NewIndexController(public)
+	controller.NewIndexController(public)
 	
 	public.GET("/", func(c *gin.Context) {
 		if session.IsLogin(c) {
@@ -134,7 +132,7 @@ func (s *Server) startTask() {
 	// Auto-start enabled inbounds
 	go func() {
 		time.Sleep(1 * time.Second)
-		s.vpnService.SyncAll()
+		// s.vpnService.SyncAll() // Deprecated: Reconciler handles this
 		// s.xrayService.SyncAll() // To be implemented
 	}()
 }

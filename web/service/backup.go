@@ -24,9 +24,9 @@ func NewBackupService() *BackupService {
 func (s *BackupService) CreateBackup() (string, error) {
 	timestamp := time.Now().Format("20060102150405")
 	backupPath := filepath.Join(os.TempDir(), fmt.Sprintf("snet_backup_%s.zip", timestamp))
-	
+
 	logger.Infof("Creating system backup at %s", backupPath)
-	
+
 	zipFile, err := os.Create(backupPath)
 	if err != nil {
 		return "", err

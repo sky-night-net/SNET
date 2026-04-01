@@ -1,15 +1,12 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
-	"runtime"
 	"sync"
 	"time"
 
-	"github.com/sky-night-net/snet/logger"
 	"github.com/sky-night-net/snet/xray"
+	"github.com/sky-night-net/snet/xray/builder"
 	"go.uber.org/atomic"
 )
 
@@ -37,9 +34,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 func (s *XrayService) RestartXray(xrayConfig *xray.Config) error {
 	xrayLock.Lock()
 	defer xrayLock.Unlock()
-	
+
 	isManuallyStopped.Store(false)
-	
+
 	if s.IsXrayRunning() {
 		xrayProcess.Stop()
 		time.Sleep(500 * time.Millisecond) // Give time to cleanup
@@ -50,10 +47,10 @@ func (s *XrayService) RestartXray(xrayConfig *xray.Config) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Wait a bit for API to become available
 	time.Sleep(1 * time.Second)
-	
+
 	return nil
 }
 
@@ -68,27 +65,27 @@ func (s *XrayService) StopXray() error {
 }
 
 func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, error) {
-    if !s.IsXrayRunning() {
-        return nil, nil, errors.New("xray is not running")
-    }
-    
-    apiPort := xrayProcess.GetAPIPort()
-    if apiPort == 0 {
-    	// Look up in config if not set in process yet
-    	for _, ib := range xrayProcess.GetConfig().InboundConfigs {
-    		if ib.Tag == "api" {
-    			apiPort = ib.Port
-    			break
-    		}
-    	}
-    }
-    
-    if apiPort == 0 {
-    	return nil, nil, errors.New("xray API port not found")
-    }
+	if !s.IsXrayRunning() {
+		return nil, nil, errors.New("xray is not running")
+	}
 
-    s.xrayAPI.Init(apiPort)
-    defer s.xrayAPI.Close()
+	apiPort := xrayProcess.GetAPIPort()
+	if apiPort == 0 {
+		// Look up in config if not set in process yet
+		for _, ib := range xrayProcess.GetConfig().InboundConfigs {
+			if ib.Tag == "api" {
+				apiPort = ib.Port
+				break
+			}
+		}
+	}
 
-    return s.xrayAPI.GetTraffic(true)
+	if apiPort == 0 {
+		return nil, nil, errors.New("xray API port not found")
+	}
+
+	s.xrayAPI.Init(apiPort)
+	defer s.xrayAPI.Close()
+
+	return s.xrayAPI.GetTraffic(true)
 }

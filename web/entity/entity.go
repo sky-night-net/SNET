@@ -13,5 +13,6 @@ type AllSetting struct {
 	WebCertFile  string `json:"webCertFile"`
 	WebKeyFile   string `json:"webKeyFile"`
 	XrayBinPath  string `json:"xrayBinPath"`
+	ServerIP     string `json:"serverIP"`
 	// Add other settings as needed for the frontend
 }

@@ -4,6 +4,7 @@ package database
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/sky-night-net/snet/config"
@@ -81,11 +82,17 @@ func initDefaultData() error {
 	}
 
 	// Initialize default settings if needed
+	port := "2053"
+	if envPort := config.GetEnvPanelPort(); envPort > 0 {
+		port = strconv.Itoa(envPort)
+	}
+
 	defaults := map[string]string{
-		"web_port":      "2053",
-		"web_base_path": "/",
+		"web_port":        port,
+		"web_base_path":   "/",
 		"session_max_age": "3600",
-		"xray_bin_path": config.GetBinFolderPath() + "/xray",
+		"xray_bin_path":   config.GetBinFolderPath() + "/xray",
+		"server_ip":       config.GetEnvServerIP(),
 	}
 
 	for k, v := range defaults {
