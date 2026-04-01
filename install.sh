@@ -35,7 +35,7 @@ fi
 # 4. Pull Protocol Images & Build Panel
 echo -e "${GREEN}3/4 Preparing protocol images and building panel...${NC}"
 # Pre-pull base images for faster build
-docker pull golang:1.24-alpine
+docker pull golang:alpine
 docker pull alpine:latest
 
 # Build and start services
