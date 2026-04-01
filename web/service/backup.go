@@ -17,13 +17,13 @@ type BackupService struct {
 
 func NewBackupService() *BackupService {
 	return &BackupService{
-		basePath: "/etc/skynet",
+		basePath: "/etc/snet",
 	}
 }
 
 func (s *BackupService) CreateBackup() (string, error) {
 	timestamp := time.Now().Format("20060102150405")
-	backupPath := filepath.Join(os.TempDir(), fmt.Sprintf("skynet_backup_%s.zip", timestamp))
+	backupPath := filepath.Join(os.TempDir(), fmt.Sprintf("snet_backup_%s.zip", timestamp))
 	
 	logger.Infof("Creating system backup at %s", backupPath)
 	
@@ -37,7 +37,7 @@ func (s *BackupService) CreateBackup() (string, error) {
 	defer archive.Close()
 
 	// 1. Backup DB
-	err = s.addToZip(archive, filepath.Join(s.basePath, "skynet.db"), "skynet.db")
+	err = s.addToZip(archive, filepath.Join(s.basePath, "snet.db"), "snet.db")
 	if err != nil {
 		logger.Warning("Database not found for backup, skipping")
 	}

@@ -45,7 +45,7 @@ func (s *SettingService) GetBasePath() (string, error) {
 func (s *SettingService) GetSecret() ([]byte, error) {
 	val, err := s.GetSetting("web_secret")
 	if err != nil {
-		return []byte("skynet-default-secret-key-12345"), nil
+		return []byte("snet-default-secret-key-12345"), nil
 	}
 	return []byte(val), nil
 }

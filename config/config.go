@@ -39,7 +39,7 @@ func GetLogLevel() LogLevel {
 	if IsDebug() {
 		return Debug
 	}
-	logLevel := os.Getenv("SKYNET_LOG_LEVEL")
+	logLevel := os.Getenv("SNET_LOG_LEVEL")
 	if logLevel == "" {
 		return Info
 	}
@@ -47,11 +47,11 @@ func GetLogLevel() LogLevel {
 }
 
 func IsDebug() bool {
-	return os.Getenv("SKYNET_DEBUG") == "true"
+	return os.Getenv("SNET_DEBUG") == "true"
 }
 
 func GetBinFolderPath() string {
-	p := os.Getenv("SKYNET_BIN_FOLDER")
+	p := os.Getenv("SNET_BIN_FOLDER")
 	if p == "" {
 		p = "bin"
 	}
@@ -76,7 +76,7 @@ func getBaseDir() string {
 }
 
 func GetDBFolderPath() string {
-	p := os.Getenv("SKYNET_DB_FOLDER")
+	p := os.Getenv("SNET_DB_FOLDER")
 	if p != "" {
 		return p
 	}
@@ -91,7 +91,7 @@ func GetDBPath() string {
 }
 
 func GetLogFolder() string {
-	p := os.Getenv("SKYNET_LOG_FOLDER")
+	p := os.Getenv("SNET_LOG_FOLDER")
 	if p != "" {
 		return p
 	}
@@ -102,7 +102,7 @@ func GetLogFolder() string {
 }
 
 func GetVPNConfigPath() string {
-	p := os.Getenv("SKYNET_VPN_CONFIG")
+	p := os.Getenv("SNET_VPN_CONFIG")
 	if p != "" {
 		return p
 	}

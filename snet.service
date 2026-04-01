@@ -6,11 +6,11 @@ After=network.target docker.service
 Type=simple
 User=root
 WorkingDirectory=/app
-ExecStart=/app/skynet-v2 run
+ExecStart=/app/snet-v2 run
 Restart=always
 RestartSec=5
-Environment=SKYNET_BIN_FOLDER=/app
-Environment=SKYNET_DB_FOLDER=/etc/skynet
+Environment=SNET_BIN_FOLDER=/app
+Environment=SNET_DB_FOLDER=/etc/snet
 
 [Install]
 WantedBy=multi-user.target

@@ -84,7 +84,7 @@ services:
     network_mode: host
     privileged: true
     volumes:
-      - /etc/skynet:/etc/skynet
+      - /etc/snet:/etc/snet
       - /var/run/docker.sock:/var/run/docker.sock
     restart: always
 ```

@@ -4,18 +4,18 @@ services:
   snet:
     build: .
     image: snet-v2:latest
-    container_name: skynet-panel
+    container_name: snet-panel
     restart: unless-stopped
     network_mode: host
     privileged: true
     volumes:
-      - /etc/skynet:/etc/skynet
-      - /var/log/skynet:/var/log/skynet
+      - /etc/snet:/etc/snet
+      - /var/log/snet:/var/log/snet
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - SKYNET_DB_FOLDER=/etc/skynet
-      - SKYNET_BIN_FOLDER=/app
-      - SKYNET_LOG_LEVEL=info
+      - SNET_DB_FOLDER=/etc/snet
+      - SNET_BIN_FOLDER=/app
+      - SNET_LOG_LEVEL=info
     cap_add:
       - NET_ADMIN
       - SYS_PTRACE

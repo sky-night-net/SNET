@@ -38,8 +38,8 @@ const (
 
 func (a *OpenVPNXORAdapter) Start(inbound *model.Inbound) error {
 	ctx := context.Background()
-	iface := fmt.Sprintf("tun_skynet%d", inbound.Id)
-	containerName := fmt.Sprintf("skynet_openvpn_xor_%d", inbound.Id)
+	iface := fmt.Sprintf("tun_snet%d", inbound.Id)
+	containerName := fmt.Sprintf("snet_openvpn_xor_%d", inbound.Id)
 	
 	// Generate server config
 	conf, _ := a.GenerateServerConfig(inbound)
@@ -52,7 +52,7 @@ func (a *OpenVPNXORAdapter) Start(inbound *model.Inbound) error {
 
 	// Start container using Docker SDK
 	resp, err := a.cli.ContainerCreate(ctx, &container.Config{
-		Image: "skynet-local/openvpn-xor:latest",
+		Image: "snet-local/openvpn-xor:latest",
 		Cmd:   []string{"openvpn", "--config", confPath, "--dev", iface},
 	}, &container.HostConfig{
 		NetworkMode: "host",
@@ -78,8 +78,8 @@ func (a *OpenVPNXORAdapter) Start(inbound *model.Inbound) error {
 
 func (a *OpenVPNXORAdapter) Stop(inbound *model.Inbound) error {
 	ctx := context.Background()
-	containerName := fmt.Sprintf("skynet_openvpn_xor_%d", inbound.Id)
-	iface := fmt.Sprintf("tun_skynet%d", inbound.Id)
+	containerName := fmt.Sprintf("snet_openvpn_xor_%d", inbound.Id)
+	iface := fmt.Sprintf("tun_snet%d", inbound.Id)
 	
 	a.StopAndRemove(ctx, containerName)
 	sys.Execute(fmt.Sprintf("ip link delete %s", iface))
@@ -89,7 +89,7 @@ func (a *OpenVPNXORAdapter) Stop(inbound *model.Inbound) error {
 
 func (a *OpenVPNXORAdapter) IsRunning(inbound *model.Inbound) bool {
 	ctx := context.Background()
-	containerName := fmt.Sprintf("skynet_openvpn_xor_%d", inbound.Id)
+	containerName := fmt.Sprintf("snet_openvpn_xor_%d", inbound.Id)
 	running, _ := a.IsContainerRunning(ctx, containerName)
 	return running
 }

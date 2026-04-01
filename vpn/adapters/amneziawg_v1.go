@@ -59,7 +59,7 @@ func (a *AmneziaWGv1Adapter) Start(inbound *model.Inbound) error {
 
 	// Start container using Docker SDK
 	resp, err := a.cli.ContainerCreate(ctx, &container.Config{
-		Image: "skynet-local/amneziawg:latest",
+		Image: "snet-local/amneziawg:latest",
 		Cmd:   []string{"/bin/bash", "-c", fmt.Sprintf("awg-quick up /etc/amnezia/amneziawg/%s.conf && tail -f /dev/null", iface)},
 		Tty:   true,
 	}, &container.HostConfig{
@@ -139,19 +139,19 @@ func (a *AmneziaWGv1Adapter) GenerateKeypair() (KeyPair, error) {
 	// I'll assume we have a way to get it or just use shell.
 	
 	// Actually, let's just use the docker image since we know it has 'awg' binary
-	priv, err := sys.Execute("docker run --rm skynet-local/amneziawg:latest awg genkey")
+	priv, err := sys.Execute("docker run --rm snet-local/amneziawg:latest awg genkey")
 	if err != nil {
 		return KeyPair{}, err
 	}
 	priv = strings.TrimSpace(priv)
 	
-	pub, err := sys.Execute(fmt.Sprintf("echo '%s' | docker run --rm -i skynet-local/amneziawg:latest awg pubkey", priv))
+	pub, err := sys.Execute(fmt.Sprintf("echo '%s' | docker run --rm -i snet-local/amneziawg:latest awg pubkey", priv))
 	if err != nil {
 		return KeyPair{}, err
 	}
 	pub = strings.TrimSpace(pub)
 	
-	psk, err := sys.Execute("docker run --rm skynet-local/amneziawg:latest awg genpsk")
+	psk, err := sys.Execute("docker run --rm snet-local/amneziawg:latest awg genpsk")
 	if err != nil {
 		return KeyPair{}, err
 	}
@@ -320,7 +320,7 @@ func (a *AmneziaWGv1Adapter) ifaceName(inbound *model.Inbound) string {
 }
 
 func (a *AmneziaWGv1Adapter) containerName(inbound *model.Inbound) string {
-	return fmt.Sprintf("skynet_%s_%d", inbound.Protocol, inbound.Id)
+	return fmt.Sprintf("snet_%s_%d", inbound.Protocol, inbound.Id)
 }
 
 func init() {

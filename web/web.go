@@ -78,7 +78,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	engine.Use(gzip.Gzip(gzip.DefaultCompression))
 	
 	store := session.NewStore()
-	engine.Use(sessions.Sessions("skynet-v2", store))
+	engine.Use(sessions.Sessions("snet-v2", store))
 	
 	basePath, _ := s.settingService.GetBasePath()
 	

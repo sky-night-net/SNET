@@ -14,7 +14,7 @@ type SSLManager struct {
 
 func NewSSLManager() *SSLManager {
 	return &SSLManager{
-		basePath: "/etc/skynet/ssl",
+		basePath: "/etc/snet/ssl",
 	}
 }
 

@@ -7,13 +7,13 @@ import (
 )
 
 const (
-	SessionName = "SKYNET_SESSION"
+	SessionName = "SNET_SESSION"
 	UserKey     = "session_user"
 )
 
 func NewStore() sessions.Store {
 	// In a real app, the secret should be in settings/env
-	store := cookie.NewStore([]byte("skynet-secret-key-12345"))
+	store := cookie.NewStore([]byte("snet-secret-key-12345"))
 	store.Options(sessions.Options{
 		Path:     "/",
 		MaxAge:   3600 * 24 * 7, // 7 days
