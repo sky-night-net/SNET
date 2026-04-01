@@ -4,36 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - SNET v2</title>
-    <link rel="stylesheet" href="/static/antd.css">
     <style>
         :root {
             --primary-bg: #0f172a;
             --glass-bg: rgba(255, 255, 255, 0.05);
             --accent-color: #38bdf8;
+            --input-bg: rgba(255, 255, 255, 0.07);
         }
-        [v-cloak] { display: none; }
         body {
             background: radial-gradient(circle at top left, #0f172a 0%, #020617 100%);
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Inter', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             overflow: hidden;
+            color: white;
         }
         .login-card {
             background: var(--glass-bg);
             backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 24px;
             padding: 48px;
-            width: 400px;
+            width: 320px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.8s ease-out;
+            animation: fadeIn 0.6s ease-out;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .logo {
@@ -48,88 +49,134 @@
             margin: 0;
             background: linear-gradient(to right, #38bdf8, #818cf8);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .ant-form-item-label > label { color: rgba(255, 255, 255, 0.8) !important; }
-        .ant-input {
-            background: rgba(255, 255, 255, 0.05) !important;
-            border-color: rgba(255, 255, 255, 0.1) !important;
-            color: #fff !important;
-            border-radius: 12px !important;
-            height: 45px !important;
+        .form-group {
+            margin-bottom: 20px;
         }
-        .ant-btn-primary {
-            background: linear-gradient(to right, #38bdf8, #818cf8) !important;
-            border: none !important;
-            border-radius: 12px !important;
-            height: 45px !important;
-            font-weight: 600 !important;
-            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3) !important;
-            margin-top: 12px;
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
         }
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--input-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: var(--accent-color);
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+            margin-top: 10px;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        #message {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 14px;
+            min-height: 20px;
+            border-radius: 8px;
+            padding: 8px;
+            display: none;
+        }
+        .error { background: rgba(239, 68, 68, 0.1); color: #f87171; display: block !important; }
+        .success { background: rgba(34, 197, 94, 0.1); color: #4ade80; display: block !important; }
     </style>
 </head>
 <body>
-    <div id="app">
-        <div class="login-card">
-            <div class="logo">
-                <h1>SNET</h1>
-            </div>
-            <a-form layout="vertical" @submit.prevent="handleLogin">
-                <a-form-item label="Username">
-                    <a-input v-model:value="form.username" placeholder="Enter username" />
-                </a-form-item>
-                <a-form-item label="Password">
-                    <a-input-password v-model:value="form.password" placeholder="Enter password" />
-                </a-form-item>
-                <a-form-item>
-                    <a-button type="primary" block html-type="submit" :loading="loading">
-                        Access Control Center
-                    </a-button>
-                </a-form-item>
-            </a-form>
+    <div class="login-card">
+        <div class="logo">
+            <h1>SNET</h1>
+            <p style="color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 4px;">Access Control Center</p>
         </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter password" required autocomplete="current-password">
+            </div>
+            <button type="submit" id="loginBtn">Access Control Center</button>
+        </form>
+        <div id="message"></div>
     </div>
 
-    <script src="/static/vue.js"></script>
-    <script src="/static/antd.js"></script>
-    <script src="/static/axios.js"></script>
-
     <script>
-        const { createApp, ref, reactive } = Vue;
-        const app = createApp({
-            setup() {
-                const loading = ref(false);
-                const form = reactive({
-                    username: '',
-                    password: ''
+        const form = document.getElementById('loginForm');
+        const btn = document.getElementById('loginBtn');
+        const msg = document.getElementById('message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            btn.disabled = true;
+            btn.textContent = 'Authenticating...';
+            msg.className = '';
+            msg.textContent = '';
+            msg.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('username', document.getElementById('username').value);
+                formData.append('password', document.getElementById('password').value);
+
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    body: formData
                 });
 
-                const handleLogin = async () => {
-                    loading.value = true;
-                    try {
-                        const formData = new FormData();
-                        formData.append('username', form.username);
-                        formData.append('password', form.password);
-                        
-                        const res = await axios.post('/login', formData);
-                        if (res.data.success) {
-                            window.location.href = '/panel';
-                        } else {
-                            antd.message.error(res.data.msg || 'Login failed');
-                        }
-                    } catch (e) {
-                        antd.message.error('An error occurred');
-                    } finally {
-                        loading.value = false;
-                    }
-                };
+                const result = await response.json();
 
-                return { form, loading, handleLogin };
+                if (result.success) {
+                    msg.className = 'success';
+                    msg.textContent = 'Welcome! Redirecting...';
+                    msg.style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = '/panel';
+                    }, 500);
+                } else {
+                    msg.className = 'error';
+                    msg.textContent = result.msg || 'Login failed';
+                    msg.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Access Control Center';
+                }
+            } catch (err) {
+                msg.className = 'error';
+                msg.textContent = 'Server connection error';
+                msg.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Access Control Center';
             }
         });
-        app.use(antd);
-        app.mount('#app');
     </script>
 </body>
 </html>
