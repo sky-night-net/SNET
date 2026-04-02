@@ -1,6 +1,6 @@
 module github.com/sky-night-net/snet
 
-go 1.26.1
+go 1.26
 
 require (
 	github.com/gin-contrib/cors v1.7.7

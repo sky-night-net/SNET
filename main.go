@@ -9,9 +9,12 @@ import (
 )
 
 func main() {
-	log.Println("SNET 3.0 Backend Starting...")
+	log.Println("SNET 3.0 Native VPN Panel (BBR Optimized)")
 
-	dbPath := os.Getenv("SNET_DB_PATH")
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = os.Getenv("SNET_DB_PATH") // Fallback
+	}
 	if dbPath == "" {
 		dbPath = "snet.db"
 	}
