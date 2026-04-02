@@ -79,6 +79,9 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          name: SNET Professional ${{ github.ref_name }}
+          generate_release_notes: true
+          make_latest: true
           files: |
             snet-linux-amd64/snet-linux-amd64.tar.gz
             snet-linux-arm64/snet-linux-arm64.tar.gz
