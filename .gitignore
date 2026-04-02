@@ -1,0 +1,23 @@
+# Binaries
+snet
+snet-linux-*
+*.exe
+*.test
+
+# Frontend
+frontend/node_modules
+frontend/dist
+api/dist
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# DB
+snet.db
+snet.db-journal
+snet.db-wal
+
+# Log
+*.log
