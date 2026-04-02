@@ -5,13 +5,16 @@ import (
 	"log"
 	"os"
 
+	"github.com/op/go-logging"
 	"github.com/sky-night-net/snet/api"
 	"github.com/sky-night-net/snet/database"
+	"github.com/sky-night-net/snet/logger"
 	"github.com/sky-night-net/snet/service"
 )
 
 func main() {
-	log.Println("SNET 3.0 Native VPN Panel (BBR Optimized)")
+	logger.InitLogger(logging.DEBUG)
+	logger.Info("SNET 3.2 Professional VPN Panel (BBR Optimized)")
 
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
