@@ -18,14 +18,20 @@ func ServeFrontend(r *gin.Engine) {
 		panic(err)
 	}
 
-	// Helper to serve index.html
-	serveIndex := func(c *gin.Context) {
-		c.FileFromFS("index.html", http.FS(sub))
+	// Read index.html into memory to avoid any redirect logic from http.FS
+	indexHTML, err := fs.ReadFile(sub, "index.html")
+	if err != nil {
+		panic(err)
 	}
 
-	// Explicitly handle root and index.html to avoid any Gin internal redirects
-	r.GET("/", serveIndex)
-	r.GET("/index.html", serveIndex)
+	// Serve raw index.html data to prevent 301/307 redirects
+	serveIndexRaw := func(c *gin.Context) {
+		c.Data(http.StatusOK, "text/html; charset=utf-8", indexHTML)
+	}
+
+	// Explicitly handle root and index.html
+	r.GET("/", serveIndexRaw)
+	r.GET("/index.html", serveIndexRaw)
 
 	// Handle all other files in dist/
 	r.NoRoute(func(c *gin.Context) {
@@ -38,7 +44,7 @@ func ServeFrontend(r *gin.Engine) {
 
 		filePath := strings.TrimPrefix(path, "/")
 		
-		// Check if file exists in the embedded FS
+		// Serve static file if it exists
 		f, err := sub.Open(filePath)
 		if err == nil {
 			f.Close()
@@ -46,7 +52,7 @@ func ServeFrontend(r *gin.Engine) {
 			return
 		}
 
-		// Fallback to index.html for React SPA
-		serveIndex(c)
+		// Fallback to React app
+		serveIndexRaw(c)
 	})
 }
