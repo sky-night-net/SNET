@@ -70,26 +70,27 @@ func (a *OpenVPNXORAdapter) IsRunning(inbound *model.Inbound) bool {
 }
 
 func (a *OpenVPNXORAdapter) AddClient(inbound *model.Inbound, client *model.Client) error {
-	// For OpenVPN, "AddClient" means generating certificates via Easy-RSA
-	cmd := fmt.Sprintf("bash -c 'cd %s && ./easyrsa --batch build-client-full %s nopass'", EasyRSADir, client.Email)
+	const easyrsa = "/usr/share/easy-rsa/easyrsa"
+	cmd := fmt.Sprintf("bash -c 'cd %s && %s --batch build-client-full %s nopass'", EasyRSADir, easyrsa, client.Email)
 	_, err := sys.Execute(cmd)
 	return err
 }
 
 func (a *OpenVPNXORAdapter) RemoveClient(inbound *model.Inbound, client *model.Client) error {
-	cmd := fmt.Sprintf("bash -c 'cd %s && ./easyrsa --batch revoke %s && ./easyrsa gen-crl'", EasyRSADir, client.Email)
+	const easyrsa = "/usr/share/easy-rsa/easyrsa"
+	cmd := fmt.Sprintf("bash -c 'cd %s && %s --batch revoke %s && %s gen-crl'", EasyRSADir, easyrsa, client.Email, easyrsa)
 	_, err := sys.Execute(cmd)
 	return err
 }
 
 func (a *OpenVPNXORAdapter) GenerateKeypair() (KeyPair, error) {
-	// For OpenVPN, this initializes the CA/PKI
 	if _, err := os.Stat(filepath.Join(EasyRSADir, "pki")); os.IsNotExist(err) {
 		os.RemoveAll(EasyRSADir)
 		os.MkdirAll(filepath.Dir(EasyRSADir), 0755)
 
+		const easyrsa = "/usr/share/easy-rsa/easyrsa"
 		sys.Execute(fmt.Sprintf("make-cadir %s", EasyRSADir))
-		sys.Execute(fmt.Sprintf("bash -c 'cd %s && ./easyrsa init-pki && EASYRSA_BATCH=1 ./easyrsa build-ca nopass && EASYRSA_BATCH=1 ./easyrsa build-server-full server nopass && ./easyrsa gen-dh'", EasyRSADir))
+		sys.Execute(fmt.Sprintf("bash -c 'cd %s && %s init-pki && EASYRSA_BATCH=1 %s build-ca nopass && EASYRSA_BATCH=1 %s build-server-full server nopass && %s gen-dh'", EasyRSADir, easyrsa, easyrsa, easyrsa, easyrsa))
 		sys.Execute(fmt.Sprintf("openvpn --genkey --secret %s/pki/ta.key", EasyRSADir))
 	}
 

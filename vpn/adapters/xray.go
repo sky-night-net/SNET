@@ -58,8 +58,8 @@ func (a *XrayAdapter) GenerateKeypair() (KeyPair, error) {
 	curve25519.ScalarBaseMult(&pub, &priv)
 
 	return KeyPair{
-		PrivateKey: base64.StdEncoding.EncodeToString(priv[:]),
-		PublicKey:  base64.StdEncoding.EncodeToString(pub[:]),
+		PrivateKey: base64.RawURLEncoding.EncodeToString(priv[:]),
+		PublicKey:  base64.RawURLEncoding.EncodeToString(pub[:]),
 	}, nil
 }
 
