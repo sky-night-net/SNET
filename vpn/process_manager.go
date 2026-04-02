@@ -60,9 +60,13 @@ func (m *ProcessManager) reconcile() {
 	}
 
 	for _, ib := range inbounds {
+		if ib.Protocol == model.VLESS || ib.Protocol == model.VMESS || ib.Protocol == model.Trojan || ib.Protocol == model.Shadowsocks || ib.Protocol == model.Tunnel || ib.Protocol == model.HTTP || ib.Protocol == model.Mixed {
+			continue // Xray handles its own process state
+		}
+
 		adapter, err := adapters.GetAdapter(ib.Protocol)
 		if err != nil {
-			continue // Skip Xray protocols
+			continue // Protocol not managed by process_manager
 		}
 
 		// Extract settings
