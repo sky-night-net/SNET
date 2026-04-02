@@ -8,6 +8,8 @@ interface ClientModalProps {
   onClose: () => void;
   onSave: (client: any) => void;
   initialData?: any;
+  inboundProtocol?: string;
+  inboundRemark?: string;
 }
 
 export default function ClientModal({ isOpen, onClose, onSave, initialData }: ClientModalProps) {

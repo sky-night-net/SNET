@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Server, ArrowUpRight, ArrowDownLeft, Zap, Shield, Trash2, Edit2, Copy, Check, Wifi } from 'lucide-react';
+import { Plus, Server, ArrowUpRight, ArrowDownLeft, Zap, Shield, Trash2, Edit2, Copy, Check, Wifi, QrCode } from 'lucide-react';
 import { api } from '../lib/api';
 import { Card, Button, Badge } from '../components/UI';
 import InboundModal from '../components/InboundModal';
+import QRModal from '../components/QRModal';
 import { useTranslation } from 'react-i18next';
 
 function formatBytes(bytes: number) {
@@ -87,6 +88,15 @@ export default function InboundsPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingInbound, setEditingInbound] = useState<any>(null);
+
+  // QR Modal
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrData, setQrData] = useState({ link: '', title: '' });
+
+  const openQr = (link: string, title: string) => {
+    setQrData({ link, title });
+    setQrModalOpen(true);
+  };
 
   const fetchInbounds = async () => {
     try {
@@ -207,7 +217,21 @@ export default function InboundsPage() {
 
                 {/* Footer actions */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                  <CopyButton text={getShareLink(ib)} />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <CopyButton text={getShareLink(ib)} />
+                    <button
+                      onClick={() => openQr(getShareLink(ib), ib.remark || 'Node')}
+                      style={{
+                        padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)',
+                        background: 'transparent', color: 'var(--text-muted)',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', fontSize: 12
+                      }}
+                      title="QR Code"
+                    >
+                      <QrCode size={12} />
+                      QR Code
+                    </button>
+                  </div>
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button
                       onClick={() => handleEdit(ib)}
@@ -236,6 +260,13 @@ export default function InboundsPage() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchInbounds}
         inbound={editingInbound}
+      />
+
+      <QRModal
+        isOpen={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        title={qrData.title}
+        link={qrData.link}
       />
     </div>
   );

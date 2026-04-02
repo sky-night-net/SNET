@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardLayout from './pages/DashboardLayout';
 import DashboardHome from './pages/DashboardHome';
 import InboundsPage from './pages/InboundsPage';
+import ClientsPage from './pages/ClientsPage';
 import SettingsPage from './pages/SettingsPage';
 import FirewallPage from './pages/FirewallPage';
 
@@ -31,6 +32,7 @@ function App() {
       >
         <Route index element={<DashboardHome />} />
         <Route path="inbounds" element={<InboundsPage />} />
+        <Route path="clients" element={<ClientsPage />} />
         <Route path="firewall" element={<FirewallPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
