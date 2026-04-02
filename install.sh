@@ -101,14 +101,38 @@ install() {
     mkdir -p $CONF_DIR
     mkdir -p /etc/amnezia/amneziawg
 
-    # 4. Копирование бинарника (или скачивание)
+    # 4. Копирование или скачивание бинарника
+    log "Проверка бинарного файла..."
     if [ -f "./snet" ]; then
         cp ./snet $SNET_BIN
         chmod +x $SNET_BIN
+        success "Используется локальный файл 'snet'"
     else
-        warn "Бинарник 'snet' не найден локально. Попытка скачивания последней версии..."
-        # TODO: Добавить скачивание с GitHub Releases в будущем
-        error "Файл snet не найден. Сначала соберите проект: go build -o snet main.go"
+        log "Бинарник не найден локально. Скачивание последней версии из GitHub..."
+        ARCH=$(uname -m)
+        case $ARCH in
+            x86_64)  TARGET="linux-amd64" ;;
+            aarch64) TARGET="linux-arm64" ;;
+            *)       error "Неподдерживаемая архитектура: $ARCH" ;;
+        esac
+
+        REPO="sky-night-net/SNET"
+        # Получаем URL последнего релиза
+        LATEST_URL=$(curl -s https://api.github.com/repos/$REPO/releases/latest | jq -r ".assets[] | select(.name | contains(\"$TARGET\")) | .browser_download_url" | head -n 1)
+        
+        if [ -z "$LATEST_URL" ] || [ "$LATEST_URL" == "null" ]; then
+            error "Не удалось найти подходящий релиз для $TARGET на GitHub."
+        fi
+
+        log "Загрузка: $LATEST_URL"
+        wget -qO snet_dist.tar.gz "$LATEST_URL"
+        tar -xzf snet_dist.tar.gz
+        
+        # Внутри архива файл называется snet-linux-amd64 или snet-linux-arm64
+        mv snet-$TARGET $SNET_BIN
+        chmod +x $SNET_BIN
+        rm snet_dist.tar.gz
+        success "Бинарный файл установлен из GitHub"
     fi
 
     # 5. Оптимизация
