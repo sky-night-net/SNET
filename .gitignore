@@ -21,3 +21,7 @@ snet.db-wal
 
 # Log
 *.log
+snet_local
+*.DS_Store
+frontend/src/pages/# Tools*
+LOGO.png
