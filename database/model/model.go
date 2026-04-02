@@ -132,3 +132,14 @@ type Client struct {
 	PresharedKey string `json:"presharedKey,omitempty"`
 	AllowedIPs   string `json:"allowedIps,omitempty"`
 }
+
+// FirewallRule represents a firewall rule managed by the panel.
+type FirewallRule struct {
+	Id      int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Action  string `json:"action"` // "allow" or "deny"
+	Port    int    `json:"port"`   // 0 for all ports
+	Ip      string `json:"ip"`     // Targeted IP or CIDR
+	Protocol string `json:"protocol"` // "tcp", "udp", "both"
+	Remark  string `json:"remark"`
+	Enable  bool   `json:"enable"`
+}

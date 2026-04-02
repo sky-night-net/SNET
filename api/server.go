@@ -67,6 +67,11 @@ func (s *Server) setupRoutes() {
 	protected.POST("/settings/password", settingsController.ChangePassword)
 	protected.GET("/settings/backup", settingsController.DownloadBackup)
 
+	firewallController := NewFirewallController()
+	protected.GET("/firewall", firewallController.GetAll)
+	protected.POST("/firewall", firewallController.Create)
+	protected.DELETE("/firewall/:id", firewallController.Delete)
+
 	// Frontend
 	ServeFrontend(s.Engine)
 }

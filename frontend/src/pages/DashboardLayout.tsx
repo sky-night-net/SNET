@@ -1,20 +1,23 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/api';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Server, Users, Settings,
-  LogOut, ShieldCheck, Menu
+  LogOut, ShieldCheck, Menu, Shield
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const NAV_ITEMS = [
-  { label: 'Дашборд',  to: '/',         icon: LayoutDashboard },
-  { label: 'Ноды',     to: '/inbounds', icon: Server },
-  { label: 'Клиенты',  to: '/clients',  icon: Users },
-  { label: 'Настройки',to: '/settings', icon: Settings },
+  { label: 'nav.dashboard', to: '/',         icon: LayoutDashboard },
+  { label: 'nav.nodes',     to: '/inbounds', icon: Server },
+  { label: 'nav.clients',  to: '/clients',  icon: Users },
+  { label: 'nav.firewall', to: '/firewall', icon: Shield },
+  { label: 'nav.settings',to: '/settings', icon: Settings },
 ];
 
 export default function DashboardLayout() {
+  const { t, i18n } = useTranslation();
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -56,7 +59,7 @@ export default function DashboardLayout() {
       {/* Nav */}
       <nav style={{ flex: 1 }}>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase', paddingLeft: 10, marginBottom: 10 }}>
-          Основное
+          {t('common.actions')}
         </div>
         {NAV_ITEMS.map(({ label, to, icon: Icon }) => (
           <NavLink
@@ -78,7 +81,7 @@ export default function DashboardLayout() {
             {({ isActive }) => (
               <>
                 <Icon size={17} color={isActive ? 'var(--accent-light)' : 'currentColor'} />
-                {label}
+                {t(label)}
                 {isActive && (
                   <motion.div
                     layoutId="nav-pill"
@@ -110,7 +113,7 @@ export default function DashboardLayout() {
         onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none'; }}
       >
         <LogOut size={17} />
-        Выйти
+        {t('nav.logout')}
       </button>
     </div>
   );
@@ -167,6 +170,25 @@ export default function DashboardLayout() {
 
           <div style={{ flex: 1 }} />
 
+          {/* Language Switcher */}
+          <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 10 }}>
+            {['ru', 'en'].map(lang => (
+              <button
+                key={lang}
+                onClick={() => i18n.changeLanguage(lang)}
+                style={{
+                  padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                  textTransform: 'uppercase', border: 'none', cursor: 'pointer',
+                  background: i18n.language === lang ? 'var(--accent)' : 'transparent',
+                  color: i18n.language === lang ? 'white' : 'var(--text-muted)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {lang}
+              </button>
+            ))}
+          </div>
+
           {/* Status indicator */}
           <div className="glassmorphism" style={{
             display: 'flex', alignItems: 'center', gap: 8,
@@ -177,7 +199,7 @@ export default function DashboardLayout() {
               transition={{ duration: 2, repeat: Infinity }}
               style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)' }}
             />
-            <span style={{ color: 'var(--text-secondary)' }}>Система работает</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{t('dashboard.system_status')}</span>
           </div>
         </div>
 

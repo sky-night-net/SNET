@@ -1,0 +1,56 @@
+{
+  "common": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "add": "Добавить",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "enable": "Включить",
+    "disable": "Выключить",
+    "search": "Поиск...",
+    "status": "Статус",
+    "remark": "Название",
+    "protocol": "Протокол",
+    "port": "Порт",
+    "listen": "Адрес",
+    "traffic": "Трафик",
+    "expiry": "Срок действия",
+    "actions": "Действия"
+  },
+  "nav": {
+    "dashboard": "Дашборд",
+    "nodes": "Ноды",
+    "clients": "Клиенты",
+    "firewall": "Firewall",
+    "settings": "Настройки",
+    "logout": "Выйти"
+  },
+  "dashboard": {
+    "title": "Дашборд",
+    "system_status": "Состояние системы",
+    "traffic_stats": "Статистика трафика",
+    "cpu_load": "Загрузка CPU",
+    "ram_usage": "Использование RAM",
+    "network_speed": "Скорость сети",
+    "active_nodes": "Активные ноды",
+    "active_clients": "Клиенты онлайн"
+  },
+  "firewall": {
+    "title": "Межсетевой экран",
+    "add_rule": "Добавить правило",
+    "action": "Действие",
+    "protocol": "Протокол",
+    "source": "Источник (IP)",
+    "allow": "РАЗРЕШИТЬ",
+    "deny": "ЗАПРЕТИТЬ",
+    "active": "Активен",
+    "disabled": "Выключен"
+  },
+  "settings": {
+    "title": "Настройки",
+    "admin_password": "Пароль администратора",
+    "backup": "Резервное копирование",
+    "download_db": "Скачать базу данных",
+    "language": "Язык интерфейса"
+  }
+}

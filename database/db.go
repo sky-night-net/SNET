@@ -35,6 +35,7 @@ func initModels() error {
 		&model.Inbound{},
 		&model.OutboundTraffics{},
 		&model.Setting{},
+		&model.FirewallRule{},
 		&model.InboundClientIps{},
 		&xray.ClientTraffic{},
 		&model.HistoryOfSeeders{},

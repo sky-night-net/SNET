@@ -56,9 +56,11 @@ export function Input({ label, error, icon, ...props }: InputProps) {
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
   options: { value: string; label: string }[];
+  icon?: React.ReactNode;
 }
 
-export function Select({ label, options, ...props }: SelectProps) {
+export function Select({ label, options, icon, ...props }: SelectProps) {
+  const [focused, setFocused] = React.useState(false);
   return (
     <div style={{ marginBottom: 18 }}>
       <label style={{ 
@@ -67,21 +69,37 @@ export function Select({ label, options, ...props }: SelectProps) {
       }}>
         {label}
       </label>
-      <select
-        {...props}
-        style={{
-          width: '100%', padding: '12px 14px',
-          background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-          borderRadius: 12, color: 'var(--text-primary)', fontSize: 14,
-          outline: 'none', cursor: 'pointer',
-          appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'rgba(255,255,255,0.4)\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")',
-          backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
-          backgroundSize: '16px',
-          ...props.style
-        }}
-      >
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+      <div style={{ position: 'relative' }}>
+        {icon && (
+          <div style={{
+            position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+            color: focused ? 'var(--accent)' : 'var(--text-muted)',
+            transition: 'color 0.2s', display: 'flex', zIndex: 1
+          }}>
+            {icon}
+          </div>
+        )}
+        <select
+          {...props}
+          onFocus={(e) => { setFocused(true); props.onFocus?.(e); }}
+          onBlur={(e) => { setFocused(false); props.onBlur?.(e); }}
+          style={{
+            width: '100%', padding: `12px 34px 12px ${icon ? 38 : 14}px`,
+            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+            borderColor: focused ? 'var(--accent)' : 'var(--border)',
+            borderRadius: 12, color: 'var(--text-primary)', fontSize: 14,
+            outline: 'none', cursor: 'pointer',
+            appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'rgba(255,255,255,0.4)\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")',
+            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
+            backgroundSize: '16px',
+            transition: 'all 0.2s',
+            boxShadow: focused ? '0 0 0 4px rgba(99,102,241,0.1)' : 'none',
+            ...props.style
+          }}
+        >
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
     </div>
   );
 }
@@ -187,5 +205,29 @@ export function Card({ children, title, icon: Icon, footer, style }: CardProps) 
         </div>
       )}
     </div>
+  );
+}
+
+export function Badge({ children, variant = 'primary', className, style }: any) {
+  const variants: any = {
+    primary: { bg: 'rgba(99,102,241,0.1)', color: 'var(--accent)' },
+    success: { bg: 'rgba(34,197,94,0.1)', color: 'var(--success)' },
+    warning: { bg: 'rgba(234,179,8,0.1)', color: 'var(--warning)' },
+    secondary: { bg: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' },
+  };
+  const s = variants[variant] || variants.primary;
+  return (
+    <span 
+      className={className}
+      style={{
+        display: 'inline-flex', alignItems: 'center',
+        padding: '4px 10px', borderRadius: 8,
+        fontSize: 12, fontWeight: 700,
+        backgroundColor: s.bg, color: s.color,
+        ...style
+      }}
+    >
+      {children}
+    </span>
   );
 }

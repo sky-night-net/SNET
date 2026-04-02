@@ -4,6 +4,7 @@ import axios from 'axios';
 const BASE = (import.meta.env.VITE_API_URL as string) || '/api';
 
 export const http = axios.create({ baseURL: BASE });
+export const api = http;
 
 http.interceptors.request.use((cfg) => {
   const t = localStorage.getItem('snet_token');

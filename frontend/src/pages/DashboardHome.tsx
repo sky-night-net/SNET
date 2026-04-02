@@ -3,6 +3,7 @@ import { motion, type Variants } from 'framer-motion';
 import { Server, Activity, Cpu, Globe } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { http } from '../lib/api';
+import { useTranslation } from 'react-i18next';
 
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -22,6 +23,7 @@ function formatBytes(bytes: number) {
 }
 
 export default function DashboardHome() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,10 +57,10 @@ export default function DashboardHome() {
   }, []);
 
   const displayStats = [
-    { label: 'CPU Usage',     value: stats ? `${stats.cpu.toFixed(1)}%` : '0%', icon: Cpu,      color: '#a78bfa' },
-    { label: 'Memory',        value: stats ? `${(stats.mem.current / stats.mem.total * 100).toFixed(0)}%` : '0%', icon: Activity, color: 'var(--success)' },
-    { label: 'Uptime',        value: stats ? `${(stats.uptime / 3600).toFixed(1)}h` : '0h', icon: Server,   color: 'var(--accent)' },
-    { label: 'Total Sent',    value: stats ? formatBytes(stats.net.bytesSent) : '0 B', icon: Globe,    color: '#f59e0b' },
+    { label: t('dashboard.cpu_load'),     value: stats ? `${stats.cpu.toFixed(1)}%` : '0%', icon: Cpu,      color: '#a78bfa' },
+    { label: t('dashboard.ram_usage'),    value: stats ? `${(stats.mem.current / stats.mem.total * 100).toFixed(0)}%` : '0%', icon: Activity, color: 'var(--success)' },
+    { label: 'Uptime',                   value: stats ? `${(stats.uptime / 3600).toFixed(1)}h` : '0h', icon: Server,   color: 'var(--accent)' },
+    { label: t('dashboard.title') + ' Sent', value: stats ? formatBytes(stats.net.bytesSent) : '0 B', icon: Globe,    color: '#f59e0b' },
   ];
 
   return (
@@ -69,10 +71,10 @@ export default function DashboardHome() {
         style={{ marginBottom: 32 }}
       >
         <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px' }}>
-          Дашборд
+          {t('dashboard.title')}
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 4 }}>
-          {loading ? 'Загрузка системных данных...' : 'Живой мониторинг вашей инфраструктуры'}
+          {loading ? 'Загрузка системных данных...' : t('dashboard.system_status')}
         </p>
       </motion.div>
 
@@ -127,8 +129,8 @@ export default function DashboardHome() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <div>
-              <h2 style={{ fontSize: 16, fontWeight: 700 }}>Трафик (KB/s)</h2>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>Входящий и исходящий трафик в реальном времени</p>
+              <h2 style={{ fontSize: 16, fontWeight: 700 }}>{t('dashboard.traffic_stats')} (KB/s)</h2>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>{t('dashboard.network_speed')}</p>
             </div>
             <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)' }}>
@@ -176,7 +178,7 @@ export default function DashboardHome() {
           }}
         >
           <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700 }}>Нагрузка CPU (%)</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 700 }}>{t('dashboard.cpu_load')} (%)</h2>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>Динамика процессора</p>
           </div>
           <ResponsiveContainer width="100%" height={220}>

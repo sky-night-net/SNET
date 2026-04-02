@@ -110,3 +110,29 @@ type TCPConfig struct {
 	Header json.RawMessage `json:"header,omitempty"`
 }
 
+type VMessSettings struct {
+	Clients []VMessClient `json:"clients"`
+}
+
+type VMessClient struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
+	AlterId int `json:"alterId"`
+}
+
+type TrojanSettings struct {
+	Clients []TrojanClient `json:"clients"`
+	Fallback any            `json:"fallback,omitempty"`
+}
+
+type TrojanClient struct {
+	Password string `json:"password"`
+	Email    string `json:"email"`
+}
+
+type ShadowsocksSettings struct {
+	Method   string `json:"method"`
+	Password string `json:"password"`
+	Network  string `json:"network"`
+}
+

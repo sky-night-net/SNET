@@ -86,33 +86,45 @@ install() {
 
     mkdir -p $SNET_DIR $CONF_DIR /etc/amnezia/amneziawg
 
-    log "Загрузка бинарного файла из GitHub..."
+    log "Загрузка бинарных файлов (SNET & Xray)..."
     ARCH=$(uname -m)
     case $ARCH in
-        x86_64)  TARGET="linux-amd64" ;;
-        aarch64) TARGET="linux-arm64" ;;
+        x86_64)  TARGET="linux-amd64"; XRAY_ARCH="64" ;;
+        aarch64) TARGET="linux-arm64"; XRAY_ARCH="arm64-v8a" ;;
         *)       error "Неподдерживаемая архитектура: $ARCH" ;;
     esac
 
+    # 1. Загрузка SNET Panel
     REPO="sky-night-net/SNET"
     LATEST_URL=$(curl -s https://api.github.com/repos/$REPO/releases/latest | jq -r ".assets[] | select(.name | contains(\"$TARGET\")) | .browser_download_url" | head -n 1)
-    
-    if [ -z "$LATEST_URL" ] || [ "$LATEST_URL" == "null" ]; then
-        error "Не удалось найти релиз для $TARGET. Проверьте соединение."
-    fi
-
     wget -qO snet_dist.tar.gz "$LATEST_URL"
     tar -xzf snet_dist.tar.gz
     mv snet-$TARGET $SNET_BIN
     chmod +x $SNET_BIN
     rm snet_dist.tar.gz
 
+    # 2. Загрузка Xray-core
+    log "Установка Xray-core..."
+    mkdir -p $SNET_DIR/bin
+    XRAY_LATEST=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest | jq -r .tag_name)
+    wget -qO xray.zip "https://github.com/XTLS/Xray-core/releases/download/$XRAY_LATEST/Xray-linux-$XRAY_ARCH.zip"
+    apt-get install -y unzip
+    unzip -o xray.zip -d $SNET_DIR/bin/
+    rm xray.zip
+    chmod +x $SNET_DIR/bin/xray
+    success "Xray-core установлен в $SNET_DIR/bin/xray"
+
+    # 3. Подготовка AmneziaWG (если нужно)
+    # На Ubuntu 24.04 amneziawg-go часто ставится через PPA или готовый бинарник
+    # Для стабильности мы полагаемся на системный wireguard-tools, который мы уже поставили
+    
     optimize_system
     
     cat <<EOF > $CONF_DIR/snet.conf
 PORT=$PANEL_PORT
 EXTERNAL_IP=$EXTERNAL_IP
 DB_PATH=$CONF_DIR/snet.db
+XRAY_PATH=$SNET_DIR/bin/xray
 EOF
 
     log "Настройка systemd..."

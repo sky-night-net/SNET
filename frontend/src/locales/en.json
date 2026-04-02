@@ -1,0 +1,56 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "enable": "Enable",
+    "disable": "Disable",
+    "search": "Search...",
+    "status": "Status",
+    "remark": "Remark",
+    "protocol": "Protocol",
+    "port": "Port",
+    "listen": "Listen",
+    "traffic": "Traffic",
+    "expiry": "Expiry",
+    "actions": "Actions"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "nodes": "Nodes",
+    "clients": "Clients",
+    "firewall": "Firewall",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "system_status": "System Status",
+    "traffic_stats": "Traffic Statistics",
+    "cpu_load": "CPU Load",
+    "ram_usage": "RAM Usage",
+    "network_speed": "Network Speed",
+    "active_nodes": "Active Nodes",
+    "active_clients": "Online Clients"
+  },
+  "firewall": {
+    "title": "Firewall",
+    "add_rule": "Add Rule",
+    "action": "Action",
+    "protocol": "Protocol",
+    "source": "Source (IP)",
+    "allow": "ALLOW",
+    "deny": "DENY",
+    "active": "Active",
+    "disabled": "Disabled"
+  },
+  "settings": {
+    "title": "Settings",
+    "admin_password": "Admin Password",
+    "backup": "Backup",
+    "download_db": "Download Database",
+    "language": "Interface Language"
+  }
+}

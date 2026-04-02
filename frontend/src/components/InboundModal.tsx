@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { Input, Select, Button } from './UI';
 import { Shield, Globe, Zap } from 'lucide-react';
+import { api } from '../lib/api';
+import { useTranslation } from 'react-i18next';
 
 interface InboundModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
-  initialData?: any;
+  onSuccess: () => void;
+  inbound?: any;
 }
 
 const PROTOCOLS = [
@@ -29,8 +31,23 @@ const SECURITIES = [
   { value: 'reality', label: 'REALITY' },
 ];
 
-export default function InboundModal({ isOpen, onClose, onSave, initialData }: InboundModalProps) {
-  const [formData, setFormData] = useState(initialData || {
+const SS_METHODS = [
+  { value: 'aes-256-gcm', label: 'aes-256-gcm' },
+  { value: 'aes-128-gcm', label: 'aes-128-gcm' },
+  { value: 'chacha20-poly1305', label: 'chacha20-poly1305' },
+  { value: 'none', label: 'none' },
+];
+
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+export default function InboundModal({ isOpen, onClose, onSuccess, inbound }: InboundModalProps) {
+  const { t } = useTranslation();
+  const [formData, setFormData] = useState<any>({
     remark: '',
     protocol: 'vless',
     port: 443,
@@ -38,12 +55,17 @@ export default function InboundModal({ isOpen, onClose, onSave, initialData }: I
     enable: true,
     total: 0,
     expiryTime: 0,
-    settings: '{"clients": [], "decryption": "none"}',
-    streamSettings: '{"network": "tcp", "security": "none"}',
     sniffing: '{"enabled": true, "destOverride": ["http", "tls"]}',
   });
 
   const [activeTab, setActiveTab] = useState('basic');
+  
+  const [settingsData, setSettingsData] = useState<any>({
+    clients: [{ id: generateUUID(), email: 'admin@snet', flow: '' }],
+    decryption: 'none',
+    fallbacks: []
+  });
+
   const [streamData, setStreamData] = useState<any>({
     network: 'tcp',
     security: 'none',
@@ -54,43 +76,93 @@ export default function InboundModal({ isOpen, onClose, onSave, initialData }: I
   });
 
   useEffect(() => {
-    if (initialData?.streamSettings) {
+    if (inbound) {
+      setFormData({
+        id: inbound.id,
+        remark: inbound.remark,
+        protocol: inbound.protocol,
+        port: inbound.port,
+        listen: inbound.listen,
+        enable: inbound.enable,
+        total: inbound.total,
+        expiryTime: inbound.expiryTime,
+        sniffing: inbound.sniffing,
+      });
       try {
-        setStreamData(JSON.parse(initialData.streamSettings));
+        if (inbound.settings) setSettingsData(JSON.parse(inbound.settings));
+        if (inbound.streamSettings) setStreamData(JSON.parse(inbound.streamSettings));
       } catch (e) {
-        console.error('Failed to parse streamSettings');
+        console.error('Failed to parse inbound settings');
       }
+    } else {
+      setFormData({
+        remark: '',
+        protocol: 'vless',
+        port: Math.floor(Math.random() * (65000 - 10000) + 10000),
+        listen: '0.0.0.0',
+        enable: true,
+        total: 0,
+        expiryTime: 0,
+        sniffing: '{"enabled": true, "destOverride": ["http", "tls"]}',
+      });
+      handleProtocolChange('vless');
     }
-  }, [initialData]);
+    setActiveTab('basic');
+  }, [inbound, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const finalData = {
-      ...formData,
-      streamSettings: JSON.stringify(streamData)
-    };
-    onSave(finalData);
+  const handleProtocolChange = (p: string) => {
+    setFormData((prev: any) => ({ ...prev, protocol: p }));
+    if (p === 'shadowsocks') {
+      setSettingsData({ method: 'aes-256-gcm', password: Math.random().toString(36).slice(-8), network: 'tcp,udp' });
+    } else if (p === 'trojan') {
+      setSettingsData({ clients: [{ password: Math.random().toString(36).slice(-8), email: 'admin@snet' }] });
+    } else {
+      setSettingsData({ clients: [{ id: generateUUID(), email: 'admin@snet', flow: '' }], decryption: 'none' });
+    }
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...formData,
+        settings: JSON.stringify(settingsData),
+        streamSettings: JSON.stringify(streamData)
+      };
+      
+      if (inbound) {
+        await api.put(`/inbounds/${inbound.id}`, payload);
+      } else {
+        await api.post('/inbounds', payload);
+      }
+      onSuccess();
+      onClose();
+    } catch (e) {
+      alert('Ошибка сохранения');
+    }
+  };
+
+  const tabs = [
+    { id: 'basic', label: 'Zap', icon: Zap, key: 'dashboard.system_status' },
+    { id: 'transport', label: 'Globe', icon: Globe, key: 'dashboard.network_speed' },
+    { id: 'security', label: 'Shield', icon: Shield, key: 'firewall.title' },
+  ];
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialData ? 'Редактировать ноду' : 'Добавить новую ноду'}
+      title={inbound ? t('common.edit') : t('common.add')}
       width={700}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Отмена</Button>
-          <Button onClick={handleSubmit}>Сохранить</Button>
+          <Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button onClick={handleSubmit}>{t('common.save')}</Button>
         </>
       }
     >
       <div style={{ display: 'flex', gap: 16, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
-        {[
-          { id: 'basic', label: 'Основные', icon: Zap },
-          { id: 'transport', label: 'Транспорт', icon: Globe },
-          { id: 'security', label: 'Безопасность', icon: Shield },
-        ].map(tab => (
+        {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -103,49 +175,100 @@ export default function InboundModal({ isOpen, onClose, onSave, initialData }: I
             }}
           >
             <tab.icon size={16} />
-            {tab.label}
+            {t(tab.key)}
           </button>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} style={{ minHeight: 320 }}>
+      <form onSubmit={handleSubmit} style={{ minHeight: 400 }}>
         {activeTab === 'basic' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Input 
-              label="Название (Remark)" 
+              label={t('common.remark')}
               value={formData.remark} 
               onChange={e => setFormData({...formData, remark: e.target.value})}
-              placeholder="e.g. My Secure Node"
+              placeholder="My Node"
             />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <Select 
-                label="Протокол" 
+                label={t('common.protocol')} 
                 value={formData.protocol} 
-                onChange={e => setFormData({...formData, protocol: e.target.value})}
+                onChange={e => handleProtocolChange(e.target.value)}
                 options={PROTOCOLS}
               />
               <Input 
-                label="Порт" 
+                label={t('common.port')} 
                 type="number"
                 value={formData.port} 
                 onChange={e => setFormData({...formData, port: parseInt(e.target.value)})}
               />
             </div>
+
+            <div style={{ padding: 16, borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase' }}>Settings</div>
+              
+              {formData.protocol === 'shadowsocks' ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Select 
+                    label="Method" 
+                    value={settingsData.method}
+                    onChange={e => setSettingsData({...settingsData, method: e.target.value})}
+                    options={SS_METHODS}
+                  />
+                  <Input 
+                    label="Password" 
+                    value={settingsData.password}
+                    onChange={e => setSettingsData({...settingsData, password: e.target.value})}
+                  />
+                </div>
+              ) : formData.protocol === 'trojan' ? (
+                <Input 
+                  label="Password" 
+                  value={settingsData.clients?.[0]?.password}
+                  onChange={e => {
+                    const cls = [...settingsData.clients];
+                    cls[0].password = e.target.value;
+                    setSettingsData({...settingsData, clients: cls});
+                  }}
+                />
+              ) : (
+                <div style={{ position: 'relative' }}>
+                  <Input 
+                    label="UUID (Client ID)" 
+                    value={settingsData.clients?.[0]?.id}
+                    onChange={e => {
+                      const cls = [...settingsData.clients];
+                      cls[0].id = e.target.value;
+                      setSettingsData({...settingsData, clients: cls});
+                    }}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                        const cls = [...settingsData.clients];
+                        cls[0].id = generateUUID();
+                        setSettingsData({...settingsData, clients: cls});
+                    }}
+                    style={{ position: 'absolute', right: 12, bottom: 8, background: 'var(--accent)', border: 'none', color: 'white', borderRadius: 6, fontSize: 10, padding: '4px 8px', cursor: 'pointer' }}
+                  >
+                    Generate
+                  </button>
+                </div>
+              )}
+            </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <Input 
-                label="Лимит трафика (GB)" 
+                label={t('common.traffic') + " (GB)"}
                 type="number"
                 value={formData.total > 0 ? (formData.total / (1024**3)).toFixed(0) : 0} 
                 onChange={e => setFormData({...formData, total: parseInt(e.target.value) * (1024**3)})}
-                placeholder="0 = без лимита"
               />
               <Input 
-                label="Срок действия (дни)" 
+                label={t('common.expiry')} 
                 type="number"
                 value={formData.expiryTime > 0 ? Math.round((formData.expiryTime - Date.now()) / (1000*60*60*24)) : 0} 
-                onChange={e => setFormData({...formData, expiryTime: Date.now() + parseInt(e.target.value) * (1000*60*60*24)})}
-                placeholder="0 = бессрочно"
+                onChange={e => setFormData({...formData, expiryTime: Date.now() + (parseInt(e.target.value) || 0) * (1000*60*60*24)})}
               />
             </div>
           </div>
@@ -154,36 +277,13 @@ export default function InboundModal({ isOpen, onClose, onSave, initialData }: I
         {activeTab === 'transport' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Select 
-              label="Тип сети (Transport)" 
+              label="Network" 
               value={streamData.network} 
               onChange={e => setStreamData({...streamData, network: e.target.value})}
               options={NETWORKS}
             />
-
-            {streamData.network === 'ws' && (
-              <Input 
-                label="WebSocket Path" 
-                value={streamData.wsSettings?.path || '/'} 
-                onChange={e => setStreamData({
-                  ...streamData, 
-                  wsSettings: { ...streamData.wsSettings, path: e.target.value }
-                })}
-              />
-            )}
-
-            {streamData.network === 'grpc' && (
-              <Input 
-                label="gRPC Service Name" 
-                value={streamData.grpcSettings?.serviceName || ''} 
-                onChange={e => setStreamData({
-                  ...streamData, 
-                  grpcSettings: { ...streamData.grpcSettings, serviceName: e.target.value }
-                })}
-              />
-            )}
-
             <Input 
-              label="Адрес прослушивания" 
+              label={t('common.listen')} 
               value={formData.listen} 
               onChange={e => setFormData({...formData, listen: e.target.value})}
             />
@@ -193,32 +293,16 @@ export default function InboundModal({ isOpen, onClose, onSave, initialData }: I
         {activeTab === 'security' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Select 
-              label="Безопасность (Security)" 
+              label="Security" 
               value={streamData.security} 
               onChange={e => setStreamData({...streamData, security: e.target.value})}
               options={SECURITIES}
             />
 
-            {streamData.security === 'tls' && (
-              <div style={{ padding: 16, border: '1px solid var(--border)', borderRadius: 12, background: 'rgba(255,255,255,0.02)' }}>
-                <Input 
-                  label="Server Name (SNI)" 
-                  value={streamData.tlsSettings?.serverName || ''} 
-                  onChange={e => setStreamData({
-                    ...streamData, 
-                    tlsSettings: { ...streamData.tlsSettings, serverName: e.target.value }
-                  })}
-                />
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-                  Примечание: сертификаты должны быть установлены в системе.
-                </p>
-              </div>
-            )}
-
             {streamData.security === 'reality' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, border: '1px solid var(--border)', borderRadius: 12, background: 'rgba(99,102,241,0.03)' }}>
                 <Input 
-                  label="Dest (Target Domain:Port)" 
+                  label="Dest" 
                   value={streamData.realitySettings?.dest || 'google.com:443'} 
                   onChange={e => setStreamData({
                     ...streamData, 
@@ -226,7 +310,7 @@ export default function InboundModal({ isOpen, onClose, onSave, initialData }: I
                   })}
                 />
                 <Input 
-                  label="Server Names (Comma separated)" 
+                  label="Server Names" 
                   value={streamData.realitySettings?.serverNames?.join(',') || 'google.com'} 
                   onChange={e => setStreamData({
                     ...streamData, 
@@ -235,7 +319,7 @@ export default function InboundModal({ isOpen, onClose, onSave, initialData }: I
                 />
                 <div style={{ position: 'relative' }}>
                   <Input 
-                    label="Reality Private Key" 
+                    label="Private Key" 
                     value={streamData.realitySettings?.privateKey || ''} 
                     onChange={e => setStreamData({
                       ...streamData, 
@@ -245,10 +329,9 @@ export default function InboundModal({ isOpen, onClose, onSave, initialData }: I
                   <button 
                     type="button"
                     onClick={() => {
-                      // Mock generator - would normally call API
                       setStreamData({
                         ...streamData,
-                        realitySettings: { ...streamData.realitySettings, privateKey: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) }
+                        realitySettings: { ...streamData.realitySettings, privateKey: Math.random().toString(36).substring(2, 15) }
                       });
                     }}
                     style={{ position: 'absolute', right: 12, bottom: 8, background: 'var(--accent)', border: 'none', color: 'white', borderRadius: 6, fontSize: 10, padding: '4px 8px', cursor: 'pointer' }}
@@ -264,4 +347,3 @@ export default function InboundModal({ isOpen, onClose, onSave, initialData }: I
     </Modal>
   );
 }
-

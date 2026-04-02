@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -36,9 +37,17 @@ func main() {
 	// Start VPN Protocol Manager (AmneziaWG, OpenVPN XOR)
 	vpnSvc := service.GetVpnService()
 	vpnSvc.Start()
+	
+	// Sync firewall rules with system
+	go func() {
+		if err := service.GetFirewallService().Sync(); err != nil {
+			fmt.Printf("Firewall sync error: %v\n", err)
+		} else {
+			fmt.Println("Firewall rules synchronized successfully")
+		}
+	}()
 
 	port := os.Getenv("PORT")
-
 	if port == "" {
 		port = "8080"
 	}
