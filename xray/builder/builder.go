@@ -21,7 +21,7 @@ func NewXrayConfigBuilder() *XrayConfigBuilder {
 					Port:     10085, // Default API port for 3x-ui style
 					Listen:   json_util.RawMessage(`"127.0.0.1"`),
 					Tag:      "api",
-					Settings: json.RawMessage(`{}`),
+					Settings: json.RawMessage(`{"decryption":"none"}`),
 				},
 			},
 			OutboundConfigs: json.RawMessage(`[{"protocol": "freedom"}]`),

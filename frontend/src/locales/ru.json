@@ -64,6 +64,19 @@
     "tab_transport": "Транспорт",
     "tab_security": "Безопасность"
   },
+  "clients": {
+    "title": "Клиенты",
+    "subtitle": "Управление учетными записями и доступами",
+    "total_clients": "Всего клиентов",
+    "all_nodes": "Все ноды",
+    "showing": "Показано: {{count}}",
+    "client_count": "клиентов",
+    "no_clients_in_node": "В этой ноде пока нет клиентов",
+    "add_first": "Добавить первого клиента",
+    "refresh": "Обновить",
+    "no_nodes": "Нет доступных нод",
+    "no_clients": "Список клиентов пуст"
+  },
   "settings": {
     "title": "Настройки",
     "admin_password": "Пароль администратора",

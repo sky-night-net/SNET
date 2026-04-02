@@ -57,11 +57,15 @@ func IsDebug() bool {
 	return os.Getenv("XUI_DEBUG") == "true"
 }
 
-// GetBinFolderPath returns the path to the binary folder, defaulting to "bin" if not set via XUI_BIN_FOLDER.
+// GetBinFolderPath returns the path to the binary folder, defaulting to "/usr/local/snet/bin" on Linux or "bin" on Windows if not set via XUI_BIN_FOLDER.
 func GetBinFolderPath() string {
 	binFolderPath := os.Getenv("XUI_BIN_FOLDER")
 	if binFolderPath == "" {
-		binFolderPath = "bin"
+		if runtime.GOOS == "windows" {
+			binFolderPath = "bin"
+		} else {
+			binFolderPath = "/usr/local/snet/bin"
+		}
 	}
 	return binFolderPath
 }

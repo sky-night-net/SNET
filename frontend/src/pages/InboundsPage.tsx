@@ -111,10 +111,14 @@ export default function InboundsPage() {
 
   const handleCreate = () => { setEditingInbound(null); setIsModalOpen(true); };
   const handleEdit   = (ib: any) => { setEditingInbound(ib);   setIsModalOpen(true); };
+  
   const handleDelete = async (id: number) => {
-    if (!confirm(t('common.delete') + '?')) return;
-    await api.delete(`/inbounds/${id}`).catch(() => alert('Error deleting'));
-    fetchInbounds();
+    try {
+      await api.delete(`/inbounds/${id}`);
+      fetchInbounds();
+    } catch {
+      alert(t('common.error_deleting'));
+    }
   };
 
   const getShareLink = (ib: any) => {
@@ -241,7 +245,7 @@ export default function InboundsPage() {
                       <Edit2 size={15} />
                     </button>
                     <button
-                      onClick={() => handleDelete(ib.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(ib.id); }}
                       style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', transition: 'all 0.2s' }}
                       title={t('common.delete')}
                     >

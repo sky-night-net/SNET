@@ -22,6 +22,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -50,8 +51,16 @@ export default function DashboardLayout() {
           boxShadow: '0 0 20px var(--accent-glow)',
           overflow: 'hidden'
         }}>
-          <img src="/logo.png" alt="L" style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-               onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = '<div style="color:var(--accent);font-weight:800">S</div>'; }} />
+          {!logoError ? (
+            <img 
+              src="/logo.png" 
+              alt="L" 
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+              onError={() => setLogoError(true)} 
+            />
+          ) : (
+            <div style={{ color: 'var(--accent)', fontWeight: 800, fontSize: 18 }}>S</div>
+          )}
         </div>
         <div>
           <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.3px', color: 'white' }}>SNET</div>

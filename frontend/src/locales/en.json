@@ -64,6 +64,19 @@
     "tab_transport": "Transport",
     "tab_security": "Security"
   },
+  "clients": {
+    "title": "Clients",
+    "subtitle": "Manage user accounts and access",
+    "total_clients": "Total Clients",
+    "all_nodes": "All Nodes",
+    "showing": "Showing: {{count}}",
+    "client_count": "clients",
+    "no_clients_in_node": "No clients in this node yet",
+    "add_first": "Add the first client",
+    "refresh": "Refresh",
+    "no_nodes": "No nodes available",
+    "no_clients": "Client list is empty"
+  },
   "settings": {
     "title": "Settings",
     "admin_password": "Admin Password",

@@ -2,6 +2,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/sky-night-net/snet/util/json_util"
@@ -84,17 +85,29 @@ type HistoryOfSeeders struct {
 // GenXrayInboundConfig generates an Xray inbound configuration from the Inbound model.
 func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	listen := i.Listen
-	// Default to 0.0.0.0 (all interfaces) when listen is empty
-	// This ensures proper dual-stack IPv4/IPv6 binding in systems where bindv6only=0
 	if listen == "" {
 		listen = "0.0.0.0"
 	}
-	listen = fmt.Sprintf("\"%v\"", listen)
+
+	settings := i.Settings
+	if i.Protocol == VLESS {
+		var s map[string]any
+		err := json.Unmarshal([]byte(i.Settings), &s)
+		if err == nil {
+			if _, ok := s["decryption"]; !ok {
+				s["decryption"] = "none"
+				newS, _ := json.Marshal(s)
+				settings = string(newS)
+			}
+		}
+	}
+
+	listenStr := fmt.Sprintf("\"%v\"", listen)
 	return &xray.InboundConfig{
-		Listen:         json_util.RawMessage(listen),
+		Listen:         json_util.RawMessage(listenStr),
 		Port:           i.Port,
 		Protocol:       string(i.Protocol),
-		Settings:       json_util.RawMessage(i.Settings),
+		Settings:       json_util.RawMessage(settings),
 		StreamSettings: json_util.RawMessage(i.StreamSettings),
 		Tag:            i.Tag,
 		Sniffing:       json_util.RawMessage(i.Sniffing),

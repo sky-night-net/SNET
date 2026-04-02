@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -20,7 +20,10 @@ import (
 
 // GetBinaryName returns the Xray binary filename for the current OS and architecture.
 func GetBinaryName() string {
-	return fmt.Sprintf("xray-%s-%s", runtime.GOOS, runtime.GOARCH)
+	if runtime.GOOS == "windows" {
+		return "xray.exe"
+	}
+	return "xray"
 }
 
 // GetBinaryPath returns the full path to the Xray binary executable.
@@ -258,6 +261,11 @@ func (p *process) Start() (err error) {
 	if p.configPath != "" {
 		configPath = p.configPath
 	}
+	err = os.MkdirAll(filepath.Dir(configPath), 0755)
+	if err != nil {
+		logger.Warningf("Failed to create bin folder: %s", err)
+	}
+
 	err = os.WriteFile(configPath, data, fs.ModePerm)
 	if err != nil {
 		return common.NewErrorf("Failed to write configuration file: %v", err)

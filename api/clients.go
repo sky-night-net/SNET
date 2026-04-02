@@ -85,7 +85,10 @@ func (c *ClientController) RemoveClient(ctx *gin.Context) {
 		newClients := make([]any, 0)
 		for _, cl := range clients {
 			if m, ok := cl.(map[string]any); ok {
-				if m["email"] != email {
+				// Check both email and id for deletion
+				mEmail, _ := m["email"].(string)
+				mId, _ := m["id"].(string)
+				if mEmail != email && mId != email {
 					newClients = append(newClients, cl)
 				}
 			}

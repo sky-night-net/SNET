@@ -9,9 +9,10 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   width?: number | string;
+  closeOnBackdrop?: boolean;
 }
 
-export default function Modal({ isOpen, onClose, title, children, footer, width = 500 }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, footer, width = 500, closeOnBackdrop = true }: ModalProps) {
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'unset';
@@ -26,7 +27,7 @@ export default function Modal({ isOpen, onClose, title, children, footer, width 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => closeOnBackdrop && onClose()}
             style={{
               position: 'fixed', inset: 0, zIndex: 100,
               background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)'

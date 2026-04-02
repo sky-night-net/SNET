@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { generateUUID } from '../lib/utils';
 import Modal from './Modal';
 import { Input, Button } from './UI';
 import { RefreshCw } from 'lucide-react';
@@ -12,9 +13,9 @@ interface ClientModalProps {
   inboundRemark?: string;
 }
 
-export default function ClientModal({ isOpen, onClose, onSave, initialData }: ClientModalProps) {
+export default function ClientModal({ isOpen, onClose, onSave, initialData, inboundProtocol, inboundRemark }: ClientModalProps) {
   const [formData, setFormData] = useState(initialData || {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     email: '',
     limitIp: 0,
     totalGB: 0,
@@ -23,8 +24,26 @@ export default function ClientModal({ isOpen, onClose, onSave, initialData }: Cl
     flow: ''
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(initialData || {
+        id: generateUUID(),
+        email: '',
+        limitIp: 0,
+        totalGB: 0,
+        expiryTime: 0,
+        enable: true,
+        flow: ''
+      });
+    }
+  }, [isOpen, initialData]);
+
+  const modalTitle = initialData 
+    ? `Редактировать клиента${inboundRemark ? ` (${inboundRemark})` : ''}` 
+    : `Добавить клиента в ноду ${inboundRemark || ''}`;
+
   const handleGenerateId = () => {
-    setFormData({ ...formData, id: crypto.randomUUID() });
+    setFormData({ ...formData, id: generateUUID() });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -36,7 +55,7 @@ export default function ClientModal({ isOpen, onClose, onSave, initialData }: Cl
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialData ? 'Редактировать клиента' : 'Добавить клиента'}
+      title={modalTitle}
       width={500}
       footer={
         <>
@@ -46,6 +65,12 @@ export default function ClientModal({ isOpen, onClose, onSave, initialData }: Cl
       }
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {inboundProtocol && (
+          <div style={{ padding: '8px 12px', background: 'rgba(99,102,241,0.1)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, color: 'var(--accent-light)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontWeight: 800 }}>{inboundProtocol.toUpperCase()}</span>
+            <span>Конфигурация клиента для этого протокола</span>
+          </div>
+        )}
         <Input 
           label="Email (Имя пользователя)" 
           value={formData.email} 

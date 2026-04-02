@@ -71,7 +71,6 @@ export default function FirewallPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm(t('common.delete') + '?')) return;
     try {
       await api.delete(`/firewall/${id}`);
       fetchRules();
@@ -182,7 +181,7 @@ export default function FirewallPage() {
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                       <button
-                        onClick={() => handleDelete(rule.id)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(rule.id); }}
                         style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', transition: 'background 0.15s' }}
                         title={t('common.delete')}
                       >
