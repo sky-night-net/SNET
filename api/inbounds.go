@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sky-night-net/snet/database"
@@ -37,6 +38,10 @@ func (c *InboundController) CreateInbound(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&inbound); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": err.Error()})
 		return
+	}
+
+	if inbound.Tag == "" {
+		inbound.Tag = "inbound-" + strconv.FormatInt(time.Now().UnixNano(), 36)
 	}
 
 	if err := database.GetDB().Create(&inbound).Error; err != nil {
