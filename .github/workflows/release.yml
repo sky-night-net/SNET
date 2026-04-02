@@ -34,7 +34,8 @@ jobs:
           npm install
           npm run build
           cd ..
-          mv frontend/dist api/dist
+          mkdir -p api/dist
+          mv frontend/dist/* api/dist/
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -42,10 +43,15 @@ jobs:
           go-version: '1.22'
           cache: true
 
+      - name: Debug File Structure
+        run: |
+          ls -R api/
+
       - name: Build Backend
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
         run: |
           go build -v -o snet-${{ matrix.goos }}-${{ matrix.goarch }} main.go
 
