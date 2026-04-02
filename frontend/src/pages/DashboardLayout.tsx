@@ -4,7 +4,7 @@ import { useAuth } from '../lib/api';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Server, Users, Settings,
-  LogOut, ShieldCheck, Menu, Shield
+  LogOut, Menu, Shield
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -44,15 +44,18 @@ export default function DashboardLayout() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 8, marginBottom: 36 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: 'linear-gradient(135deg, var(--accent), #4f46e5)',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid var(--border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 20px var(--accent-glow)'
+          boxShadow: '0 0 20px var(--accent-glow)',
+          overflow: 'hidden'
         }}>
-          <ShieldCheck size={20} color="white" />
+          <img src="/logo.png" alt="L" style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+               onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = '<div style="color:var(--accent);font-weight:800">S</div>'; }} />
         </div>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.3px' }}>SNET</div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>v3.0 NATIVE</div>
+          <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.3px', color: 'white' }}>SNET</div>
+          <div style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>v3.2.0 PROFESSIONAL</div>
         </div>
       </div>
 

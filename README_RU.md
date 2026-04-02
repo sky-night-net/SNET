@@ -1,92 +1,67 @@
-# 🌟 SNET 3.2.0: Профессиональная VPN Панель
-
 <div align="center">
-  <p>
-    <a href="README.md"><b>English (EN)</b></a> | 
-    <a href="README_RU.md"><b>Русский (RU)</b></a>
-  </p>
   
-  [![Build and Release SNET](https://github.com/sky-night-net/SNET/actions/workflows/release.yml/badge.svg)](https://github.com/sky-night-net/SNET/actions/workflows/release.yml)
-  [![Version](https://img.shields.io/badge/version-3.2.0-blue.svg)](https://github.com/sky-night-net/SNET/releases)
-  [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+  # 🌟 SNET Professional
+
+  <p align="center">
+    <a href="README.md">English</a> | 
+    <a href="README_RU.md">Русский</a>
+  </p>
+
+  <img src="assets/logo.png" alt="SNET Logo" width="200">
+
+  <p align="center">
+    <img src="https://img.shields.io/github/v/release/sky-night-net/SNET?color=blue&include_prereleases" alt="release">
+    <img src="https://img.shields.io/github/actions/workflow/status/sky-night-net/SNET/release.yml?branch=main" alt="build">
+    <img src="https://img.shields.io/github/go-mod/go-version/sky-night-net/SNET" alt="go version">
+    <img src="https://img.shields.io/github/license/sky-night-net/SNET?color=green" alt="license">
+  </p>
+
+  **Высокопроизводительная нативная панель управления VPN-инфраструктурой для Xray-core и протоколов безопасности.**
+  
 </div>
 
 ---
 
-**SNET 3.2.0** — это высокопроизводительная нативная панель управления VPN-инфраструктурой, созданная для обеспечения максимальной скорости, безопасности и современного пользовательского опыта. 
-
-> [!IMPORTANT]
-> Версия 3.2.0 является стабильным релизом с полной поддержкой Firewall и интернационализации (i18n).
+> [!IMPORTANT]  
+> Проект SNET разработан для профессионального управления VPN-сетями. Работает как нативный бинарный файл, обеспечивая максимальную скорость и стабильность без контейнеризации.
 
 ---
 
 ## 🔥 Ключевые возможности
 
-### 🎨 Интерфейс и UX
-- **Премиальный дизайн**: Современный Glassmorphism интерфейс с поддержкой темной темы.
-- **🌍 Мультиязычность (i18n)**: Полная локализация на **Русский** и **Английский** языки.
-- **📊 Живая телеметрия**: Графики нагрузки CPU, RAM и сетевого трафика в реальном времени (обновление каждые 2 сек).
-
-### 🚀 Протоколы и Безопасность
-- **Нативная поддержка**: AmneziaWG (v1/v2), OpenVPN XOR, VLESS, VMess, Trojan, Shadowsocks.
-- **🛡️ Межсетевой экран (Firewall)**: Управление правилами `iptables` прямо из веб-интерфейса.
-- **Reality & TLS**: Поддержка современных методов маскировки трафика с автоматической генерацией ключей.
-- **Xray-core**: Встроенная автоматизированная доставка актуального ядра Xray.
-
-### ⚙️ Администрирование
-- **CLI Утилита**: Управление службой через команду `snet`.
-- **Автономность**: Все зависимости и фронтенд упакованы в один бинарный файл (No Docker needed).
-- **Синхронизация**: Мгновенное применение конфигураций без задержек.
+- **🎨 Современный UX**: Премиальный Glassmorphism-интерфейс с мгновенной локализацией **RU/EN**.
+- **📊 Живая телеметрия**: Реал-тайм мониторинг (CPU, RAM, Трафик) с обновлением каждые 2 сек.
+- **🛡️ Встроенный Firewall**: Управление правилами `iptables` прямо из удобного веб-интерфейса.
+- **🚀 Поддержка протоколов**: AmneziaWG (v1/v2), OpenVPN XOR, VLESS, VMess, Trojan, Shadowsocks.
+- **🔒 Reality & TLS**: Тонкая настройка современных методов маскировки трафика.
+- **📦 Автономность**: Установка одним файлом без внешних зависимостей.
 
 ---
 
-## 🚀 Быстрая установка (Quick Start)
+## 🚀 Быстрый запуск
 
-Поддерживаемые ОС: **Ubuntu 22.04 / 24.04 (amd64, arm64)**.
+Для установки или обновления SNET выполните следующую команду:
 
-1. **Скачайте установщик**:
-   ```bash
-   wget https://raw.githubusercontent.com/sky-night-net/SNET/main/install.sh
-   chmod +x install.sh
-   ```
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/sky-night-net/SNET/main/install.sh)
+```
 
-2. **Запустите установку**:
-   ```bash
-   sudo ./install.sh
-   ```
-
-3. **Доступ к панели**:
-   - Адрес: `http://ваш-ip:8080`
-   - Логин: `admin`
-   - Пароль: `admin` (измените при первом входе!)
+Для ознакомления с подробной документацией посетите наши разделы на **English (EN)** или **Русском (RU)**.
 
 ---
 
-## 🛡️ Управление Firewall
-
-Теперь вы можете управлять доступом к портам прямо из браузера. Все правила сохраняются в БД и применяются к `iptables` при старте системы.
-
-> [!CAUTION]
-> При изменении порта панели в настройках, убедитесь, что вы сначала открыли новый порт в разделе Firewall, чтобы не потерять доступ к интерфейсу.
-
----
-
-## 🛠️ Команды CLI (`snet`)
-
-После установки используйте команду `snet` для быстрого управления:
+## 🛠️ Управление через CLI (`snet`)
 
 | Команда | Описание |
 | :--- | :--- |
-| `snet start` | Запустить панель |
-| `snet stop` | Остановить панель |
-| `snet status` | Статус службы |
+| `snet start` | Запустить службу панели |
+| `snet stop` | Остановить службу панели |
+| `snet restart` | Перезагрузить панель и ядро |
+| `snet status` | Проверить статус работы |
 | `snet logs` | Просмотр логов в реальном времени |
 
 ---
 
-## 🤝 Внесите свой вклад
-Мы приветствуем любые предложения по улучшению проекта. Оставляйте Issues или создавайте Pull Requests!
-
----
-
-> Разработано с использованием Go, React и веры в свободный интернет. 🌌
+<div align="center">
+  <sub>Разработано на Go и React. С верой в свободный интернет. 🌌</sub>
+</div>

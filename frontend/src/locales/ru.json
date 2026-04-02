@@ -14,37 +14,55 @@
     "port": "Порт",
     "listen": "Адрес",
     "traffic": "Трафик",
-    "expiry": "Срок действия",
-    "actions": "Действия"
+    "expiry": "Срок (дней)",
+    "actions": "Меню",
+    "loading": "Загрузка",
+    "error_saving": "Ошибка при сохранении",
+    "error_deleting": "Ошибка при удалении"
   },
   "nav": {
     "dashboard": "Дашборд",
     "nodes": "Ноды",
     "clients": "Клиенты",
-    "firewall": "Firewall",
+    "firewall": "Фаервол",
     "settings": "Настройки",
     "logout": "Выйти"
   },
   "dashboard": {
     "title": "Дашборд",
-    "system_status": "Состояние системы",
-    "traffic_stats": "Статистика трафика",
+    "system_status": "Система работает",
+    "traffic_stats": "Сетевой трафик",
     "cpu_load": "Загрузка CPU",
     "ram_usage": "Использование RAM",
     "network_speed": "Скорость сети",
     "active_nodes": "Активные ноды",
-    "active_clients": "Клиенты онлайн"
+    "active_clients": "Клиенты онлайн",
+    "net_sent": "Отправлено",
+    "net_recv": "Получено"
   },
   "firewall": {
     "title": "Межсетевой экран",
+    "subtitle": "Управление правилами iptables на сервере",
     "add_rule": "Добавить правило",
+    "apply_rule": "Применить правило",
+    "sync": "Синхронизировать",
     "action": "Действие",
-    "protocol": "Протокол",
     "source": "Источник (IP)",
     "allow": "РАЗРЕШИТЬ",
     "deny": "ЗАПРЕТИТЬ",
     "active": "Активен",
-    "disabled": "Выключен"
+    "disabled": "Выключен",
+    "empty": "Нет правил. Сервер использует стандартные настройки.",
+    "warning_title": "Внимание",
+    "warning_body": "Правило DENY на порт 22 (SSH) или порт {{port}} (панель) может привести к потере доступа к серверу.",
+    "remark_placeholder": "Например: Доступ к SSH"
+  },
+  "inbound": {
+    "subtitle": "Управление входящими подключениями и VPN-протоколами",
+    "empty": "Нет настроенных нод. Нажмите «Добавить», чтобы начать.",
+    "tab_basic": "Основное",
+    "tab_transport": "Транспорт",
+    "tab_security": "Безопасность"
   },
   "settings": {
     "title": "Настройки",

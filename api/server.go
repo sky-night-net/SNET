@@ -70,6 +70,7 @@ func (s *Server) setupRoutes() {
 	firewallController := NewFirewallController()
 	protected.GET("/firewall", firewallController.GetAll)
 	protected.POST("/firewall", firewallController.Create)
+	protected.POST("/firewall/sync", firewallController.Sync)
 	protected.DELETE("/firewall/:id", firewallController.Delete)
 
 	// Frontend

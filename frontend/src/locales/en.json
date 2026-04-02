@@ -14,8 +14,11 @@
     "port": "Port",
     "listen": "Listen",
     "traffic": "Traffic",
-    "expiry": "Expiry",
-    "actions": "Actions"
+    "expiry": "Expiry (days)",
+    "actions": "Menu",
+    "loading": "Loading",
+    "error_saving": "Error saving",
+    "error_deleting": "Error deleting"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -27,24 +30,39 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "system_status": "System Status",
-    "traffic_stats": "Traffic Statistics",
+    "system_status": "System Online",
+    "traffic_stats": "Network Traffic",
     "cpu_load": "CPU Load",
     "ram_usage": "RAM Usage",
     "network_speed": "Network Speed",
     "active_nodes": "Active Nodes",
-    "active_clients": "Online Clients"
+    "active_clients": "Online Clients",
+    "net_sent": "Sent",
+    "net_recv": "Received"
   },
   "firewall": {
     "title": "Firewall",
+    "subtitle": "Manage iptables rules on the server",
     "add_rule": "Add Rule",
+    "apply_rule": "Apply Rule",
+    "sync": "Sync with System",
     "action": "Action",
-    "protocol": "Protocol",
-    "source": "Source (IP)",
+    "source": "Source IP",
     "allow": "ALLOW",
     "deny": "DENY",
     "active": "Active",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "empty": "No rules. Server uses default settings.",
+    "warning_title": "Warning",
+    "warning_body": "A DENY rule on port 22 (SSH) or port {{port}} (panel) may lock you out of the server.",
+    "remark_placeholder": "e.g. Allow SSH access"
+  },
+  "inbound": {
+    "subtitle": "Manage inbound connections and VPN protocols",
+    "empty": "No nodes configured. Click «Add» to get started.",
+    "tab_basic": "Basic",
+    "tab_transport": "Transport",
+    "tab_security": "Security"
   },
   "settings": {
     "title": "Settings",

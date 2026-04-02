@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Eye, EyeOff, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Lock, User } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -49,26 +49,28 @@ export default function LoginPage() {
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 420 }}
       >
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <motion.div
             animate={{ rotate: [0, 5, -5, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 72, height: 72, borderRadius: 20,
-              background: 'linear-gradient(135deg, var(--accent), #4f46e5)',
+              width: 80, height: 80, borderRadius: 24,
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--border)',
               boxShadow: '0 0 40px var(--accent-glow), 0 8px 24px rgba(0,0,0,0.4)',
-              marginBottom: 20
+              marginBottom: 20,
+              overflow: 'hidden'
             }}
           >
-            <ShieldCheck size={36} color="white" />
+            <img src="/logo.png" alt="S" style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                 onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = '<div style="color:var(--accent);font-weight:900;font-size:32px">S</div>'; }} />
           </motion.div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
-            SNET <span style={{ color: 'var(--accent)' }}>3.0</span>
+          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', color: 'white' }}>
+            SNET <span style={{ color: 'var(--accent)' }}>3.2.0</span>
           </h1>
-          <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 6 }}>
-            Secure VPN Management Panel
+          <p style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginTop: 4 }}>
+            Professional VPN Panel
           </p>
         </div>
 

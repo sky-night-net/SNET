@@ -51,6 +51,14 @@ func (c *FirewallController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"success": true})
 }
 
+func (c *FirewallController) Sync(ctx *gin.Context) {
+	if err := c.firewallService.Sync(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"success": true, "msg": "Firewall rules synchronized"})
+}
+
 func (c *FirewallController) Delete(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, _ := strconv.Atoi(idStr)
