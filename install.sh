@@ -21,36 +21,32 @@ SNET_BIN="/usr/local/snet/snet"
 CLI_BIN="/usr/bin/snet"
 
 # --- Функции ---
-
 log() { echo -e "${BLUE}[SNET]${NC} $1"; }
 success() { echo -e "${GREEN}[OK]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
 check_root() {
-    [[ $EUID -ne 0 ]] && error "Этот скрипт должен быть запущен от имени root"
+    if [[ $EUID -ne 0 ]]; then
+        echo -e "${RED}[ERROR]${NC} Этот скрипт должен быть запущен от имени root (используйте sudo)"
+        exit 1
+    fi
 }
 
 optimize_system() {
     log "Оптимизация параметров ядра (BBR, limits)..."
-    
-    # Включение BBR
     if ! grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf; then
         echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
         echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
-        sysctl -p > /dev/null
+        sysctl -p > /dev/null || true
     fi
-
-    # Лимиты открытых файлов
     cat <<EOF > /etc/security/limits.d/snet.conf
 * soft nofile 1048576
 * hard nofile 1048576
 root soft nofile 1048576
 root hard nofile 1048576
 EOF
-    
-    # IPv4 Forwarding
-    sysctl -w net.ipv4.ip_forward=1 > /dev/null
+    sysctl -w net.ipv4.ip_forward=1 > /dev/null || true
     echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/99-snet.conf
     success "Система оптимизирована"
 }
@@ -65,88 +61,61 @@ case "\$1" in
     restart) systemctl restart snet ;;
     status) systemctl status snet ;;
     logs) journalctl -u snet -f -o cat ;;
-    version) /usr/local/snet/snet -version ;;
-    *) echo "Использование: snet {start|stop|restart|status|logs|version}" ;;
+    *) echo "Использование: snet {start|stop|restart|status|logs}" ;;
 esac
 EOF
     chmod +x $CLI_BIN
-    success "Утилита 'snet' добавлена (попробуйте в терминале: snet status)"
 }
 
 install() {
     check_root
-    
     echo -e "${PURPLE}=========================================${NC}"
     echo -e "${PURPLE}     SNET 3.0: ULTIMATE INSTALLER        ${NC}"
     echo -e "${PURPLE}=========================================${NC}"
 
-    # 1. Сбор параметров
     log "Настройка конфигурации..."
-    DEF_PORT=8080
-    read -p "Введите порт для панели [$DEF_PORT]: " PANEL_PORT
-    PANEL_PORT=${PANEL_PORT:-$DEF_PORT}
-
-    # Внешний IP
-    AUTO_IP=$(curl -s https://api.ipify.org || echo "0.0.0.0")
+    read -p "Введите порт для панели [8080]: " PANEL_PORT
+    PANEL_PORT=${PANEL_PORT:-8080}
+    
+    AUTO_IP=$(curl -s --max-time 5 https://api.ipify.org || echo "0.0.0.0")
     read -p "Введите внешний IP сервера [$AUTO_IP]: " EXTERNAL_IP
     EXTERNAL_IP=${EXTERNAL_IP:-$AUTO_IP}
 
-    # 2. Установка зависимостей
-    log "Установка системных пакетов..."
-    apt-get update -q
-    apt-get install -y -q wireguard-tools openvpn iptables iproute2 curl jq wget ca-certificates
+    log "Установка зависимостей..."
+    apt-get update -q && apt-get install -y -q wireguard-tools openvpn iptables iproute2 curl jq wget ca-certificates
+
+    mkdir -p $SNET_DIR $CONF_DIR /etc/amnezia/amneziawg
+
+    log "Загрузка бинарного файла из GitHub..."
+    ARCH=$(uname -m)
+    case $ARCH in
+        x86_64)  TARGET="linux-amd64" ;;
+        aarch64) TARGET="linux-arm64" ;;
+        *)       error "Неподдерживаемая архитектура: $ARCH" ;;
+    esac
+
+    REPO="sky-night-net/SNET"
+    LATEST_URL=$(curl -s https://api.github.com/repos/$REPO/releases/latest | jq -r ".assets[] | select(.name | contains(\"$TARGET\")) | .browser_download_url" | head -n 1)
     
-    # 3. Подготовка директорий
-    mkdir -p $SNET_DIR
-    mkdir -p $CONF_DIR
-    mkdir -p /etc/amnezia/amneziawg
-
-    # 4. Копирование или скачивание бинарника
-    log "Проверка бинарного файла..."
-    if [ -f "./snet" ]; then
-        cp ./snet $SNET_BIN
-        chmod +x $SNET_BIN
-        success "Используется локальный файл 'snet'"
-    else
-        log "Бинарник не найден локально. Скачивание последней версии из GitHub..."
-        ARCH=$(uname -m)
-        case $ARCH in
-            x86_64)  TARGET="linux-amd64" ;;
-            aarch64) TARGET="linux-arm64" ;;
-            *)       error "Неподдерживаемая архитектура: $ARCH" ;;
-        esac
-
-        REPO="sky-night-net/SNET"
-        # Получаем URL последнего релиза
-        LATEST_URL=$(curl -s https://api.github.com/repos/$REPO/releases/latest | jq -r ".assets[] | select(.name | contains(\"$TARGET\")) | .browser_download_url" | head -n 1)
-        
-        if [ -z "$LATEST_URL" ] || [ "$LATEST_URL" == "null" ]; then
-            error "Не удалось найти подходящий релиз для $TARGET на GitHub."
-        fi
-
-        log "Загрузка: $LATEST_URL"
-        wget -qO snet_dist.tar.gz "$LATEST_URL"
-        tar -xzf snet_dist.tar.gz
-        
-        # Внутри архива файл называется snet-linux-amd64 или snet-linux-arm64
-        mv snet-$TARGET $SNET_BIN
-        chmod +x $SNET_BIN
-        rm snet_dist.tar.gz
-        success "Бинарный файл установлен из GitHub"
+    if [ -z "$LATEST_URL" ] || [ "$LATEST_URL" == "null" ]; then
+        error "Не удалось найти релиз для $TARGET. Проверьте соединение."
     fi
 
-    # 5. Оптимизация
-    optimize_system
+    wget -qO snet_dist.tar.gz "$LATEST_URL"
+    tar -xzf snet_dist.tar.gz
+    mv snet-$TARGET $SNET_BIN
+    chmod +x $SNET_BIN
+    rm snet_dist.tar.gz
 
-    # 6. Сохранение конфигурации
+    optimize_system
+    
     cat <<EOF > $CONF_DIR/snet.conf
 PORT=$PANEL_PORT
 EXTERNAL_IP=$EXTERNAL_IP
 DB_PATH=$CONF_DIR/snet.db
 EOF
 
-    # 7. Systemd
-    log "Настройка службы snet.service..."
+    log "Настройка systemd..."
     cat <<EOF > /etc/systemd/system/snet.service
 [Unit]
 Description=SNET 3.0 Native VPN Panel
@@ -168,34 +137,25 @@ EOF
     systemctl daemon-reload
     systemctl enable snet
     systemctl restart snet
-
     setup_cli
 
     echo -e "${PURPLE}=========================================${NC}"
     echo -e "${GREEN}SNET 3.0 успешно установлена!${NC}"
     echo -e "Панель:   ${CYAN}http://$EXTERNAL_IP:$PANEL_PORT${NC}"
-    echo -e "Команда:  ${CYAN}snet logs${NC} (просмотр логов)"
-    echo -e "БД:       ${CYAN}$CONF_DIR/snet.db${NC}"
     echo -e "${PURPLE}=========================================${NC}"
 }
 
 uninstall() {
     check_root
-    log "Начинается полное удаление SNET..."
-    
+    log "Удаление SNET..."
     systemctl stop snet || true
     systemctl disable snet || true
     rm -f /etc/systemd/system/snet.service
-    systemctl daemon-reload
-    
-    rm -rf $SNET_DIR
-    rm -rf $CONF_DIR
-    rm -f $CLI_BIN
-    
-    success "SNET 3.0 полностью удалена."
+    rm -rf $SNET_DIR $CONF_DIR $CLI_BIN
+    success "SNET 3.0 удалена."
 }
 
-# --- Main ---
+# --- Главный вход ---
 case "$1" in
     uninstall) uninstall ;;
     *) install ;;
