@@ -17,7 +17,7 @@ import (
 	"github.com/sky-night-net/snet/util/crypto"
 	"github.com/sky-night-net/snet/xray"
 
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
