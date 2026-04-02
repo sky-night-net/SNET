@@ -13,30 +13,47 @@ import (
 var frontendFS embed.FS
 
 func ServeFrontend(r *gin.Engine) {
+	// Root of our static files
 	sub, err := fs.Sub(frontendFS, "dist")
 	if err != nil {
 		panic(err)
 	}
 
-	staticServer := http.FileServer(http.FS(sub))
+	// Disable Gin's internal redirecting for the frontend routes
+	r.RedirectTrailingSlash = false
+	r.RedirectFixedPath = false
 
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
-		
-		// If requesting an API route that doesn't exist, return 404
+
+		// 1. Skip API routes
 		if strings.HasPrefix(path, "/api") {
 			c.JSON(http.StatusNotFound, gin.H{"success": false, "msg": "API route not found"})
 			return
 		}
 
-		// Serve static file if it exists in the embedded FS
-		_, err := sub.Open(strings.TrimPrefix(path, "/"))
-		if err == nil {
-			staticServer.ServeHTTP(c.Writer, c.Request)
+		// 2. Clean path for FS lookup
+		filePath := strings.TrimPrefix(path, "/")
+		
+		// 3. If it's root or empty, serve index.html immediately
+		if filePath == "" || filePath == "/" {
+			c.FileFromFS("index.html", http.FS(sub))
 			return
 		}
 
-		// Otherwise, serve index.html (for SPA routing)
+		// 4. Try to open the file in the embedded FS
+		f, err := sub.Open(filePath)
+		if err == nil {
+			f.Close()
+			// If it's a directory, don't serve it directly (prevents 301 loops)
+			stat, _ := fs.Stat(sub, filePath)
+			if stat != nil && !stat.IsDir() {
+				c.FileFromFS(filePath, http.FS(sub))
+				return
+			}
+		}
+
+		// 5. Fallback to index.html for all other routes (React SPA)
 		c.FileFromFS("index.html", http.FS(sub))
 	})
 }
