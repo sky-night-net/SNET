@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { http } from '../lib/api';
 import {
-  Plus, Trash2, Download,
-  RefreshCw, Shield, Key, ChevronDown, ChevronRight,
-  Wifi, Lock, Globe, Server
+  Plus, Trash2,
+  RefreshCw, Shield, Lock, ChevronDown, ChevronRight,
+  Wifi, Globe, Server, UserPlus, Copy, Check
 } from 'lucide-react';
 import InboundModal from '../components/InboundModal';
+import ClientModal from '../components/ClientModal';
 
 interface Inbound {
   id: number;
@@ -18,6 +19,8 @@ interface Inbound {
   down: number;
   total: number;
   expiryTime: number;
+  settings: string;
+  streamSettings: string;
   clientStats?: { email: string; enable: boolean; up: number; down: number }[];
 }
 
@@ -28,7 +31,7 @@ const PROTOCOL_META: Record<string, { label: string; color: string; icon: any }>
   'shadowsocks':    { label: 'Shadowsocks',    color: '#f59e0b', icon: Globe },
   'amneziawg-v1':   { label: 'AmneziaWG v1',  color: '#10b981', icon: Wifi },
   'amneziawg-v2':   { label: 'AmneziaWG v2',  color: '#34d399', icon: Wifi },
-  'openvpn-xor':    { label: 'OpenVPN XOR',   color: '#f97316', icon: Key },
+  'openvpn-xor':    { label: 'OpenVPN XOR',   color: '#f97316', icon: Lock },
 };
 
 function formatBytes(bytes: number): string {
@@ -38,11 +41,98 @@ function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-function InboundCard({ inbound, onDelete }: { inbound: Inbound; onDelete: (id: number) => void }) {
+function generateConfigLink(inbound: Inbound, client: any): string {
+  const stream = JSON.parse(inbound.streamSettings || '{}');
+  const host = window.location.hostname;
+  const remark = encodeURIComponent(`${inbound.remark}-${client.email}`);
+
+  if (inbound.protocol === 'vless') {
+    let link = `vless://${client.id}@${host}:${inbound.port}?type=${stream.network || 'tcp'}&security=${stream.security || 'none'}`;
+    if (stream.security === 'reality') {
+      const reality = stream.realitySettings || {};
+      link += `&sni=${reality.serverNames?.[0] || ''}&fp=chrome&pbk=${reality.publicKey || ''}&sid=${reality.shortIds?.[0] || ''}`;
+    } else if (stream.security === 'tls') {
+      link += `&sni=${stream.tlsSettings?.serverName || ''}`;
+    }
+    return `${link}#${remark}`;
+  }
+
+  if (inbound.protocol === 'vmess') {
+    const vmessConf = {
+      v: "2",
+      ps: `${inbound.remark}-${client.email}`,
+      add: host,
+      port: inbound.port,
+      id: client.id,
+      aid: "0",
+      net: stream.network || "tcp",
+      type: "none",
+      host: "",
+      path: stream.wsSettings?.path || "",
+      tls: stream.security === "tls" ? "tls" : "none",
+      sni: stream.tlsSettings?.serverName || ""
+    };
+    return `vmess://${btoa(JSON.stringify(vmessConf))}`;
+  }
+
+  if (inbound.protocol === 'trojan') {
+    let link = `trojan://${client.id || client.password}@${host}:${inbound.port}?security=${stream.security || 'none'}`;
+    if (stream.security === 'tls') {
+      link += `&sni=${stream.tlsSettings?.serverName || ''}`;
+    }
+    return `${link}#${remark}`;
+  }
+
+  if (inbound.protocol === 'shadowsocks') {
+    const auth = btoa(`aes-256-gcm:${client.password}`);
+    return `ss://${auth}@${host}:${inbound.port}#${remark}`;
+  }
+
+  return '';
+}
+
+function InboundCard({ inbound, onDelete, onRefresh }: { inbound: Inbound; onDelete: (id: number) => void, onRefresh: () => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [clientModalOpen, setClientModalOpen] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+
   const meta = PROTOCOL_META[inbound.protocol] ?? { label: inbound.protocol, color: '#94a3b8', icon: Globe };
   const Icon = meta.icon;
   const usedPercent = inbound.total > 0 ? Math.round(((inbound.up + inbound.down) / inbound.total) * 100) : 0;
+
+  let clients: any[] = [];
+  try {
+    const settings = JSON.parse(inbound.settings || '{}');
+    clients = settings.clients || [];
+  } catch (e) {}
+
+  const handleAddClient = async (client: any) => {
+    try {
+      const { data } = await http.post(`/inbounds/${inbound.id}/clients`, client);
+      if (data.success) {
+        setClientModalOpen(false);
+        onRefresh();
+      }
+    } catch (err) {
+      alert('Ошибка при добавлении клиента');
+    }
+  };
+
+  const handleRemoveClient = async (email: string) => {
+    if (!confirm(`Удалить клиента ${email}?`)) return;
+    try {
+      const { data } = await http.delete(`/inbounds/${inbound.id}/clients/${email}`);
+      if (data.success) onRefresh();
+    } catch (err) {
+      alert('Ошибка при удалении клиента');
+    }
+  };
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   return (
     <motion.div
@@ -102,7 +192,8 @@ function InboundCard({ inbound, onDelete }: { inbound: Inbound; onDelete: (id: n
           style={{ display: 'flex', gap: 6 }}
           onClick={e => e.stopPropagation()}
         >
-          <ActionBtn icon={<Trash2 size={14} />} color="#ef4444" onClick={() => onDelete(inbound.id)} title="Удалить" />
+          <ActionBtn icon={<UserPlus size={14} />} color="var(--accent)" onClick={() => setClientModalOpen(true)} title="Добавить клиента" />
+          <ActionBtn icon={<Trash2 size={14} />} color="#ef4444" onClick={() => onDelete(inbound.id)} title="Удалить ноду" />
         </div>
 
         {expanded ? <ChevronDown size={16} color="var(--text-muted)" /> : <ChevronRight size={16} color="var(--text-muted)" />}
@@ -132,34 +223,44 @@ function InboundCard({ inbound, onDelete }: { inbound: Inbound; onDelete: (id: n
           >
             <div style={{ padding: '4px 20px 20px', borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12, paddingTop: 12 }}>
-                Клиенты ({inbound.clientStats?.length ?? 0})
+                Клиенты ({clients.length})
               </div>
-              {!inbound.clientStats?.length ? (
-                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Нет клиентов</p>
+              {!clients.length ? (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Нет активных клиентов</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {inbound.clientStats?.map(c => (
+                  {clients.map(c => (
                     <div key={c.email} style={{
                       display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '9px 14px', borderRadius: 10,
-                      background: 'var(--bg-elevated)', border: '1px solid var(--border)'
+                      padding: '12px 14px', borderRadius: 12,
+                      background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)'
                     }}>
-                      <div style={{
-                        width: 7, height: 7, borderRadius: '50%',
-                        background: c.enable ? 'var(--success)' : 'var(--text-muted)',
-                        flexShrink: 0
-                      }} />
-                      <span style={{ fontSize: 13, flex: 1 }}>{c.email}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatBytes(c.up)} / {formatBytes(c.down)}</span>
-                      <button style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: 'var(--text-muted)', display: 'flex', padding: 4, borderRadius: 6
-                      }}
-                        title="Скачать конфигурацию"
-                        onClick={() => alert(`Скачать конфиг для ${c.email}`)}
-                      >
-                        <Download size={14} />
-                      </button>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{c.email}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'monospace' }}>{c.id}</div>
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button style={{
+                          background: 'var(--bg-elevated)', border: '1px solid var(--border)', cursor: 'pointer',
+                          color: copied === c.id ? 'var(--success)' : 'var(--text-secondary)', 
+                          display: 'flex', padding: 8, borderRadius: 8, transition: 'all 0.2s'
+                        }}
+                          title="Скопировать ссылку"
+                          onClick={() => copyToClipboard(generateConfigLink(inbound, c), c.id)}
+                        >
+                          {copied === c.id ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                        <button style={{
+                          background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer',
+                          color: '#ef4444', display: 'flex', padding: 8, borderRadius: 8
+                        }}
+                          title="Удалить клиента"
+                          onClick={() => handleRemoveClient(c.email)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -168,6 +269,12 @@ function InboundCard({ inbound, onDelete }: { inbound: Inbound; onDelete: (id: n
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ClientModal 
+        isOpen={clientModalOpen}
+        onClose={() => setClientModalOpen(false)}
+        onSave={handleAddClient}
+      />
     </motion.div>
   );
 }
@@ -179,7 +286,7 @@ function ActionBtn({ icon, color, onClick, title }: { icon: any; color: string; 
       title={title}
       style={{
         background: `${color}12`, border: `1px solid ${color}25`,
-        color, borderRadius: 8, width: 30, height: 30,
+        color, borderRadius: 8, width: 32, height: 32,
         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.15s ease'
       }}
@@ -286,7 +393,7 @@ export default function InboundsPage() {
       <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <AnimatePresence>
           {inbounds.map(inbound => (
-            <InboundCard key={inbound.id} inbound={inbound} onDelete={handleDelete} />
+            <InboundCard key={inbound.id} inbound={inbound} onDelete={handleDelete} onRefresh={fetchInbounds} />
           ))}
         </AnimatePresence>
 
@@ -314,3 +421,4 @@ export default function InboundsPage() {
     </div>
   );
 }
+

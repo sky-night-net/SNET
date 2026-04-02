@@ -63,3 +63,50 @@ type VLESSClient struct {
 	Email string `json:"email"`
 	Flow  string `json:"flow,omitempty"`
 }
+
+type StreamSettings struct {
+	Network  string          `json:"network"`
+	Security string          `json:"security"`
+	TLS      *TLSConfig      `json:"tlsSettings,omitempty"`
+	Reality  *RealityConfig  `json:"realitySettings,omitempty"`
+	WS       *WSConfig       `json:"wsSettings,omitempty"`
+	GRPC     *GRPCConfig     `json:"grpcSettings,omitempty"`
+	TCP      *TCPConfig      `json:"tcpSettings,omitempty"`
+}
+
+type TLSConfig struct {
+	ServerName   string   `json:"serverName,omitempty"`
+	Alpn         []string `json:"alpn,omitempty"`
+	Certificates []Cert   `json:"certificates,omitempty"`
+}
+
+type Cert struct {
+	CertificateFile string   `json:"certificateFile,omitempty"`
+	KeyFile         string   `json:"keyFile,omitempty"`
+	Usage           string   `json:"usage,omitempty"`
+}
+
+type RealityConfig struct {
+	Show        bool              `json:"show"`
+	Dest        string            `json:"dest"`
+	Xver        int               `json:"xver"`
+	ServerNames []string          `json:"serverNames"`
+	PrivateKey  string            `json:"privateKey"`
+	MinClient   string            `json:"minClient"`
+	MaxClient   string            `json:"maxClient"`
+	ShortIds    []string          `json:"shortIds"`
+}
+
+type WSConfig struct {
+	Path    string            `json:"path"`
+	Headers map[string]string `json:"headers"`
+}
+
+type GRPCConfig struct {
+	ServiceName string `json:"serviceName"`
+}
+
+type TCPConfig struct {
+	Header json.RawMessage `json:"header,omitempty"`
+}
+

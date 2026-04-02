@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sky-night-net/snet/database"
 	"github.com/sky-night-net/snet/database/model"
+	"github.com/sky-night-net/snet/service"
 )
 
 type InboundController struct{}
@@ -15,21 +16,20 @@ func NewInboundController() *InboundController {
 	return &InboundController{}
 }
 
+func (c *InboundController) applyService(ib *model.Inbound) {
+	if ib.Protocol == "amneziawg" || ib.Protocol == "amneziawg-v1" || ib.Protocol == "amneziawg-v2" || ib.Protocol == "openvpn-xor" {
+		vpnSvc := service.GetVpnService()
+		_ = vpnSvc.GetManager().RestartInbound(ib)
+	} else {
+		xraySvc := service.GetXrayService()
+		_ = xraySvc.ApplyConfig()
+	}
+}
+
 func (c *InboundController) GetInbounds(ctx *gin.Context) {
 	var inbounds []model.Inbound
-	db := database.GetDB()
-	
-	// Preload client statistics
-	err := db.Preload("ClientStats").Find(&inbounds).Error
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"obj":     inbounds,
-	})
+	database.GetDB().Preload("ClientStats").Find(&inbounds)
+	ctx.JSON(http.StatusOK, gin.H{"success": true, "obj": inbounds})
 }
 
 func (c *InboundController) CreateInbound(ctx *gin.Context) {
@@ -39,38 +39,48 @@ func (c *InboundController) CreateInbound(ctx *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
-	
-	// Set a default Tag if empty
-	if inbound.Tag == "" {
-		inbound.Tag = "inbound-" + strconv.Itoa(inbound.Port)
-	}
-
-	if err := db.Create(&inbound).Error; err != nil {
+	if err := database.GetDB().Create(&inbound).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
 		return
 	}
 
-	// TODO: Trigger VpnMgr or XrayService to apply changes
+	c.applyService(&inbound)
+	ctx.JSON(http.StatusOK, gin.H{"success": true, "obj": inbound})
+}
 
-	ctx.JSON(http.StatusOK, gin.H{"success": true, "msg": "Inbound created", "obj": inbound})
+func (c *InboundController) UpdateInbound(ctx *gin.Context) {
+	id, _ := strconv.Atoi(ctx.Param("id"))
+	var inbound model.Inbound
+	if err := database.GetDB().First(&inbound, id).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"success": false, "msg": "Inbound not found"})
+		return
+	}
+
+	if err := ctx.ShouldBindJSON(&inbound); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": err.Error()})
+		return
+	}
+
+	database.GetDB().Save(&inbound)
+	c.applyService(&inbound)
+	ctx.JSON(http.StatusOK, gin.H{"success": true, "obj": inbound})
 }
 
 func (c *InboundController) DeleteInbound(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": "Invalid ID"})
+	id, _ := strconv.Atoi(ctx.Param("id"))
+	var inbound model.Inbound
+	if err := database.GetDB().First(&inbound, id).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"success": false, "msg": "Inbound not found"})
 		return
 	}
 
-	db := database.GetDB()
-	if err := db.Delete(&model.Inbound{}, id).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
-		return
-	}
+	database.GetDB().Delete(&inbound)
 
-	// TODO: Trigger cleanup of interfaces/processes
+	if inbound.Protocol == "amneziawg" || inbound.Protocol == "amneziawg-v1" || inbound.Protocol == "amneziawg-v2" || inbound.Protocol == "openvpn-xor" {
+		service.GetVpnService().GetManager().StopInbound(&inbound)
+	} else {
+		service.GetXrayService().ApplyConfig()
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{"success": true, "msg": "Inbound deleted"})
 }

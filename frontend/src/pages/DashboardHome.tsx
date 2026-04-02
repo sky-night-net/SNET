@@ -4,13 +4,6 @@ import { Server, Activity, Cpu, Globe } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { http } from '../lib/api';
 
-// Mock traffic for chart (can be improved later with historical data)
-const generateMockTraffic = () => Array.from({ length: 12 }, (_, i) => ({
-  time: `${String(i * 2).padStart(2, '0')}:00`,
-  upload: Math.floor(Math.random() * 80 + 20),
-  download: Math.floor(Math.random() * 120 + 40),
-}));
-
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({ 
@@ -30,7 +23,7 @@ function formatBytes(bytes: number) {
 
 export default function DashboardHome() {
   const [stats, setStats] = useState<any>(null);
-  const [trafficData] = useState(generateMockTraffic());
+  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,6 +32,15 @@ export default function DashboardHome() {
         const { data } = await http.get('/system/status');
         if (data.success) {
           setStats(data.obj);
+          if (data.obj.history) {
+            setHistory(data.obj.history.map((p: any) => ({
+              time: new Date(p.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              cpu: p.cpu,
+              upload: p.netUp / 1024, // KB
+              download: p.netDown / 1024, // KB
+              mem: Math.round(p.mem / (1024 * 1024)) // MB
+            })));
+          }
         }
       } catch (err) {
         console.error('Failed to fetch system stats');
@@ -48,7 +50,7 @@ export default function DashboardHome() {
     };
 
     fetchStats();
-    const timer = setInterval(fetchStats, 5000);
+    const timer = setInterval(fetchStats, 2000);
     return () => clearInterval(timer);
   }, []);
 
@@ -113,55 +115,90 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35, duration: 0.5 }}
-        style={{
-          background: 'var(--bg-card)', border: '1px solid var(--border)',
-          borderRadius: 20, padding: '24px 24px 16px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700 }}>Сетевая активность</h2>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>Общая нагрузка интерфейса</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.5 }}
+          style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: 20, padding: '24px 24px 16px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 700 }}>Трафик (KB/s)</h2>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>Входящий и исходящий трафик в реальном времени</p>
+            </div>
+            <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)' }}>
+                <span style={{ width: 10, height: 3, borderRadius: 99, background: '#818cf8', display: 'inline-block' }} />
+                Upload
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)' }}>
+                <span style={{ width: 10, height: 3, borderRadius: 99, background: 'var(--success)', display: 'inline-block' }} />
+                Download
+              </span>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)' }}>
-              <span style={{ width: 10, height: 3, borderRadius: 99, background: '#818cf8', display: 'inline-block' }} />
-              Upload
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)' }}>
-              <span style={{ width: 10, height: 3, borderRadius: 99, background: 'var(--success)', display: 'inline-block' }} />
-              Download
-            </span>
-          </div>
-        </div>
 
-        <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={trafficData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="gUpload" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#818cf8" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="gDownload" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="time" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip 
-              contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px' }}
-              itemStyle={{ fontSize: '12px' }}
-            />
-            <Area type="monotone" dataKey="upload" stroke="#818cf8" strokeWidth={2} fill="url(#gUpload)" dot={false} />
-            <Area type="monotone" dataKey="download" stroke="#10b981" strokeWidth={2} fill="url(#gDownload)" dot={false} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </motion.div>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={history} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gUpload" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#818cf8" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gDownload" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="time" hide />
+              <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip 
+                contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px' }}
+                itemStyle={{ fontSize: '12px' }}
+              />
+              <Area type="monotone" dataKey="upload" stroke="#818cf8" strokeWidth={2} fill="url(#gUpload)" isAnimationActive={false} />
+              <Area type="monotone" dataKey="download" stroke="#10b981" strokeWidth={2} fill="url(#gDownload)" isAnimationActive={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45, duration: 0.5 }}
+          style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: 20, padding: '24px 24px 16px',
+          }}
+        >
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700 }}>Нагрузка CPU (%)</h2>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>Динамика процессора</p>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={history} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gCpu" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="time" hide />
+              <YAxis domain={[0, 100]} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip 
+                contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px' }}
+                itemStyle={{ fontSize: '12px' }}
+              />
+              <Area type="monotone" dataKey="cpu" stroke="var(--accent)" strokeWidth={2} fill="url(#gCpu)" isAnimationActive={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </motion.div>
+      </div>
     </div>
   );
 }
+

@@ -46,7 +46,9 @@ func (s *Server) setupRoutes() {
 	inboundController := NewInboundController()
 	protected.GET("/inbounds", inboundController.GetInbounds)
 	protected.POST("/inbounds", inboundController.CreateInbound)
+	protected.PUT("/inbounds/:id", inboundController.UpdateInbound)
 	protected.DELETE("/inbounds/:id", inboundController.DeleteInbound)
+
 
 	// Clients
 	clientController := NewClientController()
@@ -57,6 +59,13 @@ func (s *Server) setupRoutes() {
 	// System
 	systemController := NewSystemController()
 	protected.GET("/system/status", systemController.GetStatus)
+
+	// Settings
+	settingsController := NewSettingsController()
+	protected.GET("/settings", settingsController.GetAll)
+	protected.PUT("/settings", settingsController.Update)
+	protected.POST("/settings/password", settingsController.ChangePassword)
+	protected.GET("/settings/backup", settingsController.DownloadBackup)
 
 	// Frontend
 	ServeFrontend(s.Engine)

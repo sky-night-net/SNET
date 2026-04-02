@@ -11,6 +11,7 @@ import (
 	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/shirou/gopsutil/v4/net"
+	"github.com/sky-night-net/snet/service"
 )
 
 type SystemController struct {
@@ -35,15 +36,19 @@ func (c *SystemController) GetStatus(ctx *gin.Context) {
 		cpuPercent = cUsage[0]
 	}
 
+	history := service.GetStatsService().GetHistory()
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"obj": gin.H{
-			"cpu":    cpuPercent,
-			"mem":    gin.H{"current": v.Used, "total": v.Total},
-			"load":   l.Load1,
-			"uptime": h.Uptime,
-			"net":    n[0],
-			"go":     gin.H{"goroutines": runtime.NumGoroutine(), "version": runtime.Version()},
+			"cpu":     cpuPercent,
+			"mem":     gin.H{"current": v.Used, "total": v.Total},
+			"load":    l.Load1,
+			"uptime":  h.Uptime,
+			"net":     n[0],
+			"go":      gin.H{"goroutines": runtime.NumGoroutine(), "version": runtime.Version()},
+			"history": history,
 		},
 	})
 }
+

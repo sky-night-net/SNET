@@ -148,3 +148,44 @@ export function Button({ children, loading, variant = 'primary', ...props }: any
     </motion.button>
   );
 }
+
+interface CardProps {
+  children: React.ReactNode;
+  title?: string;
+  icon?: any;
+  footer?: React.ReactNode;
+  style?: React.CSSProperties;
+}
+
+export function Card({ children, title, icon: Icon, footer, style }: CardProps) {
+  return (
+    <div style={{
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
+      borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      ...style
+    }}>
+      {(title || Icon) && (
+        <div style={{
+          padding: '16px 20px', borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: 'rgba(255,255,255,0.01)'
+        }}>
+          {Icon && <Icon size={18} color="var(--accent)" />}
+          {title && <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.2px' }}>{title}</span>}
+        </div>
+      )}
+      <div style={{ padding: 20, flex: 1 }}>
+        {children}
+      </div>
+      {footer && (
+        <div style={{
+          padding: '14px 20px', background: 'rgba(255,255,255,0.02)',
+          borderTop: '1px solid var(--border)'
+        }}>
+          {footer}
+        </div>
+      )}
+    </div>
+  );
+}

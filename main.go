@@ -6,6 +6,7 @@ import (
 
 	"github.com/sky-night-net/snet/api"
 	"github.com/sky-night-net/snet/database"
+	"github.com/sky-night-net/snet/service"
 )
 
 func main() {
@@ -24,12 +25,26 @@ func main() {
 	}
 	defer database.CloseDB()
 
+	// Start background telemetry collection
+	statsSvc := service.GetStatsService()
+	statsSvc.Start()
+
+	// Initial Xray start
+	xraySvc := service.GetXrayService()
+	_ = xraySvc.ApplyConfig()
+
+	// Start VPN Protocol Manager (AmneziaWG, OpenVPN XOR)
+	vpnSvc := service.GetVpnService()
+	vpnSvc.Start()
+
 	port := os.Getenv("PORT")
+
 	if port == "" {
 		port = "8080"
 	}
 
 	server := api.NewServer()
+
 	if err := server.Start(":" + port); err != nil {
 		log.Fatalf("Server stopped: %v", err)
 	}
