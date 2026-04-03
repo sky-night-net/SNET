@@ -134,7 +134,48 @@ func (a *XrayAdapter) GenerateClientConfig(inbound *model.Inbound, client *model
 		return "vmess://" + base64.StdEncoding.EncodeToString(jb), nil
 	}
 
-	// VLESS, Trojan, Shadowsocks use URI parameters
+	// ── Shadowsocks — ss://BASE64(method:password)@host:port#remark ─────────
+	if protocol == "shadowsocks" {
+		method := "chacha20-ietf-poly1305"
+		if m, ok := settings["method"].(string); ok && m != "" {
+			method = m
+		}
+		password := uid // uid is client.Password for SS
+		if password == "" {
+			password = client.Password
+		}
+		creds := base64.StdEncoding.EncodeToString([]byte(method + ":" + password))
+		return fmt.Sprintf("ss://%s@%s:%d#%s", creds, host, port, url.QueryEscape(remark)), nil
+	}
+
+	// ── Trojan — trojan://PASSWORD@host:port?security=tls#remark ─────────────
+	if protocol == "trojan" {
+		password := uid
+		if password == "" {
+			password = client.Password
+		}
+		security := "tls"
+		if sec, ok := stream["security"].(string); ok && sec != "" && sec != "none" {
+			security = sec
+		}
+		q := url.Values{}
+		q.Set("security", security)
+		q.Set("type", func() string {
+			if nw, ok := stream["network"].(string); ok && nw != "" {
+				return nw
+			}
+			return "tcp"
+		}())
+		if tls, ok := stream["tlsSettings"].(map[string]interface{}); ok {
+			if sni, ok := tls["serverName"].(string); ok && sni != "" {
+				q.Set("sni", sni)
+			}
+		}
+		return fmt.Sprintf("trojan://%s@%s:%d?%s#%s",
+			url.QueryEscape(password), host, port, q.Encode(), url.QueryEscape(remark)), nil
+	}
+
+	// ── VLESS (and other Xray URI protocols) ──────────────────────────────────
 	u := &url.URL{
 		Scheme: protocol,
 		User:   url.User(uid),
@@ -176,7 +217,6 @@ func (a *XrayAdapter) GenerateClientConfig(inbound *model.Inbound, client *model
 		}
 	} else if security == "reality" {
 		if reality, ok := stream["realitySettings"].(map[string]interface{}); ok {
-			q.Set("sni", fmt.Sprintf("%v", reality["dest"])) // Often dest contains fallback:port, but link expects SNI
 			if sNames, ok := reality["serverNames"].([]interface{}); ok && len(sNames) > 0 {
 				q.Set("sni", fmt.Sprintf("%v", sNames[0]))
 			}
@@ -184,13 +224,12 @@ func (a *XrayAdapter) GenerateClientConfig(inbound *model.Inbound, client *model
 			if sid, ok := reality["shortIds"].([]interface{}); ok && len(sid) > 0 {
 				q.Set("sid", fmt.Sprintf("%v", sid[0]))
 			}
-			q.Set("fp", "chrome") // Default for Realty
+			q.Set("fp", "chrome")
 		}
 	}
 
 	// Flow (for VLESS)
 	if protocol == "vless" {
-		// Need to find this client's flow in Settings
 		if clients, ok := settings["clients"].([]interface{}); ok {
 			for _, c := range clients {
 				if cm, ok := c.(map[string]interface{}); ok && cm["id"] == uid {
@@ -206,6 +245,7 @@ func (a *XrayAdapter) GenerateClientConfig(inbound *model.Inbound, client *model
 	u.Fragment = remark
 	return u.String(), nil
 }
+
 
 func (a *XrayAdapter) GetTraffic(inbound *model.Inbound) (map[string]Traffic, error) {
 	return nil, nil

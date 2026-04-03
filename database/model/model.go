@@ -102,6 +102,40 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		}
 	}
 
+	// Fix Shadowsocks settings: standard ciphers (non-2022) don't support the
+	// 'clients' array format in Xray. We must convert to single-user format.
+	if i.Protocol == Shadowsocks {
+		var s map[string]any
+		if err := json.Unmarshal([]byte(i.Settings), &s); err == nil {
+			method, _ := s["method"].(string)
+			if method == "" {
+				method = "chacha20-ietf-poly1305"
+			}
+			// Check if it's a 2022-style cipher (supports clients array natively)
+			is2022 := len(method) > 4 && method[:4] == "2022"
+			if !is2022 {
+				// Extract first client's password for single-user mode
+				password := ""
+				if clients, ok := s["clients"].([]any); ok && len(clients) > 0 {
+					if cm, ok := clients[0].(map[string]any); ok {
+						password, _ = cm["password"].(string)
+					}
+				}
+				if password == "" {
+					password, _ = s["password"].(string)
+				}
+				// Build single-user Shadowsocks settings
+				singleUser := map[string]any{
+					"method":   method,
+					"password": password,
+					"network":  "tcp,udp",
+				}
+				newS, _ := json.Marshal(singleUser)
+				settings = string(newS)
+			}
+		}
+	}
+
 	listenStr := fmt.Sprintf("\"%v\"", listen)
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listenStr),
@@ -113,6 +147,7 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		Sniffing:       json_util.RawMessage(i.Sniffing),
 	}
 }
+
 
 // Setting stores key-value configuration settings for the 3x-ui panel.
 type Setting struct {
