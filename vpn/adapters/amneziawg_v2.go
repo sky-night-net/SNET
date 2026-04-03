@@ -108,7 +108,7 @@ func (a *AmneziaWGv2Adapter) GenerateServerConfig(inbound *model.Inbound) (strin
 	return strings.Join(lines, "\n") + "\n", nil
 }
 
-func (a *AmneziaWGv2Adapter) GenerateClientConfig(inbound *model.Inbound, client *model.Client) (string, error) {
+func (a *AmneziaWGv2Adapter) GenerateClientConfig(inbound *model.Inbound, client *model.Client, host string) (string, error) {
 	var settings map[string]interface{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 
@@ -121,7 +121,7 @@ func (a *AmneziaWGv2Adapter) GenerateClientConfig(inbound *model.Inbound, client
 	}
 
 	serverPub := settings["public_key"].(string)
-	serverIP := settings["server_ip"].(string)
+	serverIP := host
 	port := inbound.Port
 	dns := "1.1.1.1, 8.8.8.8"
 	if d, ok := settings["dns"].(string); ok {

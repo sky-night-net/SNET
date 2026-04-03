@@ -22,6 +22,9 @@ func NewFirewallController() *FirewallController {
 }
 
 func (c *FirewallController) GetAll(ctx *gin.Context) {
+	// Auto-scan system for real rules whenever we list firewall rules
+	c.firewallService.ScanSystemRules()
+
 	db := database.GetDB()
 	var rules []model.FirewallRule
 	db.Find(&rules)
@@ -52,6 +55,10 @@ func (c *FirewallController) Create(ctx *gin.Context) {
 }
 
 func (c *FirewallController) Sync(ctx *gin.Context) {
+	// First, scan system to find real rules
+	c.firewallService.ScanSystemRules()
+
+	// Then apply all enabled rules from DB
 	if err := c.firewallService.Sync(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
 		return

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sky-night-net/snet/database"
@@ -49,6 +50,13 @@ func (c *InboundController) CreateInbound(ctx *gin.Context) {
 		return
 	}
 
+	// Auto-open firewall port
+	fwSvc := service.GetFirewallService()
+	fwRemark := "Auto: " + inbound.Remark
+	if err := fwSvc.AddPort(inbound.Port, "both", fwRemark); err != nil {
+		log.Printf("Firewall auto-open failed for port %d: %v", inbound.Port, err)
+	}
+
 	c.applyService(&inbound)
 	ctx.JSON(http.StatusOK, gin.H{"success": true, "obj": inbound})
 }
@@ -77,6 +85,12 @@ func (c *InboundController) DeleteInbound(ctx *gin.Context) {
 	if err := database.GetDB().First(&inbound, id).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"success": false, "msg": "Inbound not found"})
 		return
+	}
+
+	// Auto-close firewall port before deletion
+	fwSvc := service.GetFirewallService()
+	if err := fwSvc.RemovePort(inbound.Port, "both"); err != nil {
+		log.Printf("Firewall auto-close failed for port %d: %v", inbound.Port, err)
 	}
 
 	database.GetDB().Delete(&inbound)

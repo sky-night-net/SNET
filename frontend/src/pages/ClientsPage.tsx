@@ -18,11 +18,23 @@ function formatBytes(bytes: number) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-function CopyBtn({ text }: { text: string }) {
+function CopyBtn({ client }: { client: any }) {
   const [copied, setCopied] = useState(false);
+  
+  const handleCopy = async () => {
+    try {
+      const res = await api.get(`/inbounds/${client._inboundId}/clients/${client.email || client.id}/config`);
+      if (res.data.success) {
+        navigator.clipboard.writeText(res.data.obj);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }
+    } catch { /* ignore */ }
+  };
+
   return (
     <button
-      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      onClick={handleCopy}
       title="Copy"
       style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: copied ? 'var(--success)' : 'var(--text-muted)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11 }}
     >
@@ -115,30 +127,6 @@ export default function ClientsPage() {
     }
   };
 
-  const getShareLink = (client: any) => {
-    try {
-      const host = window.location.hostname;
-      const proto = (client._inboundProtocol || '').toLowerCase();
-      const port = client._inboundPort;
-      const uid = client.id || client.password || '';
-      const email = client.email || client._inboundRemark || 'Config';
-      
-      if (proto === 'vless') {
-        return `vless://${uid}@${host}:${port}?type=tcp&security=none#${encodeURIComponent(email)}`;
-      }
-      if (proto === 'trojan') {
-        return `trojan://${uid}@${host}:${port}#${encodeURIComponent(email)}`;
-      }
-      if (proto === 'vmess') {
-        // Simple mock for vmess, usually requires base64
-        return `vmess://${uid}@${host}:${port}#${encodeURIComponent(email)}`;
-      }
-      return `${proto}://${host}:${port}`;
-    } catch (e) {
-      console.error('Error generating share link:', e);
-      return '';
-    }
-  };
 
   const inboundOptions = useMemo(() => [
     { value: 'all', label: t('clients.all_nodes') },
@@ -300,9 +288,16 @@ export default function ClientsPage() {
                               }
                             </td>
                             <td style={{ padding: '12px 18px', display: 'flex', gap: 6 }}>
-                              <CopyBtn text={getShareLink({ ...client, _inboundProtocol: ib.protocol, _inboundPort: ib.port })} />
+                              <CopyBtn client={{ ...client, _inboundId: ib.id }} />
                               <button
-                                onClick={() => openQr(getShareLink({ ...client, _inboundProtocol: ib.protocol, _inboundPort: ib.port }), client.email || client.id || 'Config')}
+                                onClick={async () => {
+                                  try {
+                                    const res = await api.get(`/inbounds/${ib.id}/clients/${client.email || client.id}/config`);
+                                    if (res.data.success) {
+                                      openQr(res.data.obj, client.email || client.id || 'Config');
+                                    }
+                                  } catch { /* ignore */ }
+                                }}
                                 style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11 }}
                                 title="QR Code"
                               >

@@ -33,7 +33,7 @@ type VPNAdapter interface {
 
 	// Config generation
 	GenerateServerConfig(inbound *model.Inbound) (string, error)
-	GenerateClientConfig(inbound *model.Inbound, client *model.Client) (string, error)
+	GenerateClientConfig(inbound *model.Inbound, client *model.Client, host string) (string, error)
 
 	// Traffic stats (returns map of client email/id to traffic)
 	GetTraffic(inbound *model.Inbound) (map[string]Traffic, error)

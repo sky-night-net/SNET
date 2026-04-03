@@ -54,6 +54,7 @@ func (s *Server) setupRoutes() {
 	clientController := NewClientController()
 	protected.POST("/inbounds/:id/clients", clientController.AddClient)
 	protected.DELETE("/inbounds/:id/clients/:clientId", clientController.RemoveClient)
+	protected.GET("/inbounds/:id/clients/:clientId/config", clientController.GetConfig)
 	protected.POST("/clients/keygen/:protocol", clientController.Keygen)
 
 	// System

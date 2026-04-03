@@ -3,6 +3,10 @@ package adapters
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/sky-night-net/snet/database/model"
 	"golang.org/x/crypto/curve25519"
@@ -67,8 +71,140 @@ func (a *XrayAdapter) GenerateServerConfig(inbound *model.Inbound) (string, erro
 	return "", nil
 }
 
-func (a *XrayAdapter) GenerateClientConfig(inbound *model.Inbound, client *model.Client) (string, error) {
-	return "", nil
+func (a *XrayAdapter) GenerateClientConfig(inbound *model.Inbound, client *model.Client, host string) (string, error) {
+	port := inbound.Port
+	protocol := strings.ToLower(string(inbound.Protocol))
+	remark := inbound.Remark
+	if remark == "" {
+		remark = fmt.Sprintf("%s-%d", protocol, port)
+	}
+
+	var stream map[string]interface{}
+	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+
+	var settings map[string]interface{}
+	json.Unmarshal([]byte(inbound.Settings), &settings)
+
+	// Determine UID/Password
+	uid := client.ID
+	if uid == "" {
+		uid = client.Password
+	}
+
+	if protocol == "vmess" {
+		// VMess uses a JSON config base64-encoded
+		vmessConfig := map[string]interface{}{
+			"v":    "2",
+			"ps":   remark,
+			"add":  host,
+			"port": port,
+			"id":   uid,
+			"aid":  "0",
+			"scy":  "auto",
+			"net":  stream["network"],
+			"type": "none",
+			"host": "",
+			"path": "",
+			"tls":  "",
+			"sni":  "",
+			"alpn": "",
+			"fp":   "",
+		}
+		// Extract network specific settings
+		if nw, ok := stream["network"].(string); ok {
+			switch nw {
+			case "ws":
+				if ws, ok := stream["wsSettings"].(map[string]interface{}); ok {
+					vmessConfig["path"] = ws["path"]
+					if headers, ok := ws["headers"].(map[string]interface{}); ok {
+						vmessConfig["host"] = headers["Host"]
+					}
+				}
+			case "grpc":
+				if grpc, ok := stream["grpcSettings"].(map[string]interface{}); ok {
+					vmessConfig["path"] = grpc["serviceName"]
+				}
+			}
+		}
+		if sec, ok := stream["security"].(string); ok && sec != "none" {
+			vmessConfig["tls"] = sec
+		}
+
+		jb, _ := json.Marshal(vmessConfig)
+		return "vmess://" + base64.StdEncoding.EncodeToString(jb), nil
+	}
+
+	// VLESS, Trojan, Shadowsocks use URI parameters
+	u := &url.URL{
+		Scheme: protocol,
+		User:   url.User(uid),
+		Host:   fmt.Sprintf("%s:%d", host, port),
+	}
+	q := u.Query()
+
+	// Network
+	if nw, ok := stream["network"].(string); ok && nw != "tcp" {
+		q.Set("type", nw)
+		switch nw {
+		case "ws":
+			if ws, ok := stream["wsSettings"].(map[string]interface{}); ok {
+				q.Set("path", fmt.Sprintf("%v", ws["path"]))
+				if headers, ok := ws["headers"].(map[string]interface{}); ok {
+					q.Set("host", fmt.Sprintf("%v", headers["Host"]))
+				}
+			}
+		case "grpc":
+			if grpc, ok := stream["grpcSettings"].(map[string]interface{}); ok {
+				q.Set("serviceName", fmt.Sprintf("%v", grpc["serviceName"]))
+			}
+		}
+	}
+
+	// Security
+	security := "none"
+	if sec, ok := stream["security"].(string); ok {
+		security = sec
+	}
+	q.Set("security", security)
+
+	if security == "tls" {
+		if tls, ok := stream["tlsSettings"].(map[string]interface{}); ok {
+			q.Set("sni", fmt.Sprintf("%v", tls["serverName"]))
+			if fp, ok := tls["fingerprint"].(string); ok && fp != "" {
+				q.Set("fp", fp)
+			}
+		}
+	} else if security == "reality" {
+		if reality, ok := stream["realitySettings"].(map[string]interface{}); ok {
+			q.Set("sni", fmt.Sprintf("%v", reality["dest"])) // Often dest contains fallback:port, but link expects SNI
+			if sNames, ok := reality["serverNames"].([]interface{}); ok && len(sNames) > 0 {
+				q.Set("sni", fmt.Sprintf("%v", sNames[0]))
+			}
+			q.Set("pbk", fmt.Sprintf("%v", reality["publicKey"]))
+			if sid, ok := reality["shortIds"].([]interface{}); ok && len(sid) > 0 {
+				q.Set("sid", fmt.Sprintf("%v", sid[0]))
+			}
+			q.Set("fp", "chrome") // Default for Realty
+		}
+	}
+
+	// Flow (for VLESS)
+	if protocol == "vless" {
+		// Need to find this client's flow in Settings
+		if clients, ok := settings["clients"].([]interface{}); ok {
+			for _, c := range clients {
+				if cm, ok := c.(map[string]interface{}); ok && cm["id"] == uid {
+					if flow, ok := cm["flow"].(string); ok && flow != "" {
+						q.Set("flow", flow)
+					}
+				}
+			}
+		}
+	}
+
+	u.RawQuery = q.Encode()
+	u.Fragment = remark
+	return u.String(), nil
 }
 
 func (a *XrayAdapter) GetTraffic(inbound *model.Inbound) (map[string]Traffic, error) {

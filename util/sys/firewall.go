@@ -20,10 +20,11 @@ func (m *FirewallManager) SetupNAT(iface string) error {
 	Execute("sysctl -w net.ipv4.ip_forward=1")
 
 	// 2. Add MASQUERADE rule
-	// We check if it exists first to avoid duplicates
-	err := m.addRuleOnlyIfMissing("nat", "POSTROUTING", fmt.Sprintf("-o eth0 -j MASQUERADE")) // Assume eth0 is primary or use blank for all
+	// Get default interface instead of hardcoding eth0
+	publicIface := GetDefaultInterface()
+	err := m.addRuleOnlyIfMissing("nat", "POSTROUTING", fmt.Sprintf("-o %s -j MASQUERADE", publicIface))
 	if err != nil {
-		// Try without -o eth0 if it fails
+		// Fallback to a wider rule if specific interface fails
 		m.addRuleOnlyIfMissing("nat", "POSTROUTING", "-j MASQUERADE")
 	}
 

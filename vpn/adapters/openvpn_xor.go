@@ -168,7 +168,7 @@ mssfix 1350
 	return config, nil
 }
 
-func (a *OpenVPNXORAdapter) GenerateClientConfig(inbound *model.Inbound, client *model.Client) (string, error) {
+func (a *OpenVPNXORAdapter) GenerateClientConfig(inbound *model.Inbound, client *model.Client, host string) (string, error) {
 	var settings map[string]interface{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 
@@ -176,10 +176,7 @@ func (a *OpenVPNXORAdapter) GenerateClientConfig(inbound *model.Inbound, client 
 	json.Unmarshal([]byte(inbound.StreamSettings), &obfs)
 
 	port := inbound.Port
-	serverIP := ""
-	if sip, ok := settings["server_ip"].(string); ok {
-		serverIP = sip
-	}
+	serverIP := host
 
 	scramblePassword := ""
 	if sp, ok := obfs["scramble_password"].(string); ok {
