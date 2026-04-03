@@ -82,7 +82,7 @@ install() {
     EXTERNAL_IP=${EXTERNAL_IP:-$AUTO_IP}
 
     log "Установка зависимостей..."
-    apt-get update -q && apt-get install -y -q wireguard-tools openvpn iptables iproute2 curl jq wget ca-certificates
+    apt-get update -q && apt-get install -y -q wireguard-tools openvpn easy-rsa iptables iproute2 curl jq wget ca-certificates
 
     mkdir -p $SNET_DIR $CONF_DIR /etc/amnezia/amneziawg
 

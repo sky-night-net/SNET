@@ -36,6 +36,14 @@ func (a *OpenVPNXORAdapter) Start(inbound *model.Inbound) error {
 	iface := fmt.Sprintf("tun_snet%d", inbound.Id)
 	pidPath := fmt.Sprintf("/var/run/snet_openvpn_%d.pid", inbound.Id)
 
+	// Ensure PKI exists for fresh installations
+	if _, err := os.Stat(filepath.Join(EasyRSADir, "pki")); os.IsNotExist(err) {
+		log.Printf("OpenVPN: PKI missing, initializing...")
+		if _, err := a.GenerateKeypair(); err != nil {
+			return fmt.Errorf("failed to initialize OpenVPN PKI: %v", err)
+		}
+	}
+
 	// Proactive cleanup
 	a.Stop(inbound)
 	sys.Execute(fmt.Sprintf("ip link delete %s 2>/dev/null || true", iface))
