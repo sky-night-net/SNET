@@ -121,21 +121,91 @@ export default function InboundsPage() {
     }
   };
 
+  // Returns the correct share/config string for each protocol.
+  // Uses the backend-configured EXTERNAL_IP (via API base URL) as the server host.
   const getShareLink = (ib: any) => {
     try {
       const settings = JSON.parse(ib.settings || '{}');
       const stream   = JSON.parse(ib.streamSettings || '{}');
-      const uid = settings.clients?.[0]?.id || settings.clients?.[0]?.password || '';
-      const host = window.location.hostname;
-      if (ib.protocol === 'vless') {
-        return `vless://${uid}@${host}:${ib.port}?security=${stream.security || 'none'}&type=${stream.network || 'tcp'}#${encodeURIComponent(ib.remark)}`;
+      const client   = settings.clients?.[0];
+      if (!client) return `(add a client to ${ib.remark} first)`;
+
+      // Use the API server hostname as the public VPN server IP
+      // The backend has EXTERNAL_IP configured in its environment
+      const apiBase = (window as any).__SNET_API_HOST__ || window.location.hostname;
+      const host = apiBase;
+      const port  = ib.port;
+      const remark = encodeURIComponent(ib.remark || `node-${ib.id}`);
+      const proto  = (ib.protocol || '').toLowerCase();
+
+      // ── VLESS ────────────────────────────────────────────────────────────
+      if (proto === 'vless') {
+        const uid      = client.id || '';
+        const security = stream.security || 'none';
+        const net      = stream.network  || 'tcp';
+        const params = new URLSearchParams({ security, type: net });
+        if (security === 'tls' && stream.tlsSettings?.serverName)
+          params.set('sni', stream.tlsSettings.serverName);
+        if (security === 'reality' && stream.realitySettings) {
+          const rs = stream.realitySettings;
+          params.set('pbk', rs.publicKey || '');
+          if (rs.serverNames?.[0]) params.set('sni', rs.serverNames[0]);
+          if (rs.shortIds?.[0])    params.set('sid', rs.shortIds[0]);
+          params.set('fp', 'chrome');
+        }
+        if (client.flow) params.set('flow', client.flow);
+        return `vless://${uid}@${host}:${port}?${params.toString()}#${remark}`;
       }
-      if (ib.protocol === 'trojan') {
-        return `trojan://${uid}@${host}:${ib.port}?security=${stream.security || 'tls'}#${encodeURIComponent(ib.remark)}`;
+
+      // ── VMess ────────────────────────────────────────────────────────────
+      if (proto === 'vmess') {
+        const obj: Record<string, any> = {
+          v: '2', ps: decodeURIComponent(remark),
+          add: host, port, id: client.id || '',
+          aid: '0', scy: 'auto',
+          net: stream.network || 'tcp',
+          type: 'none', host: '', path: '', tls: '', sni: '', alpn: '', fp: '',
+        };
+        if (stream.network === 'ws' && stream.wsSettings) {
+          obj.path = stream.wsSettings.path || '';
+          obj.host = stream.wsSettings.headers?.Host || '';
+        }
+        if (stream.network === 'grpc' && stream.grpcSettings)
+          obj.path = stream.grpcSettings.serviceName || '';
+        if (stream.security && stream.security !== 'none') obj.tls = stream.security;
+        return 'vmess://' + btoa(JSON.stringify(obj));
       }
+
+      // ── Trojan ───────────────────────────────────────────────────────────
+      if (proto === 'trojan') {
+        const pass     = client.password || '';
+        const security = stream.security || 'tls';
+        const net      = stream.network  || 'tcp';
+        const params   = new URLSearchParams({ security, type: net });
+        if (stream.tlsSettings?.serverName) params.set('sni', stream.tlsSettings.serverName);
+        return `trojan://${pass}@${host}:${port}?${params.toString()}#${remark}`;
+      }
+
+      // ── Shadowsocks ──────────────────────────────────────────────────────
+      if (proto === 'shadowsocks') {
+        const method   = settings.method || 'chacha20-ietf-poly1305';
+        const password = client.password || '';
+        const creds    = btoa(`${method}:${password}`);
+        return `ss://${creds}@${host}:${port}#${remark}`;
+      }
+
+      // ── AmneziaWG / OpenVPN — no short URI, show instructions ────────────
+      if (proto.startsWith('amneziawg') || proto.startsWith('amnezia')) {
+        return `[AmneziaWG] Download the .conf file from the client panel to import into AmneziaVPN app\nServer: ${host}:${port}`;
+      }
+      if (proto.startsWith('openvpn')) {
+        return `[OpenVPN XOR] Download the .ovpn file from the client panel to import into your OpenVPN client\nServer: ${host}:${port}`;
+      }
+
     } catch { /* ignore */ }
-    return `${ib.protocol}://${window.location.hostname}:${ib.port}`;
+    return `(error generating config for ${ib.protocol})`;
   };
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
