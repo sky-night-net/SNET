@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -18,6 +19,19 @@ type ClientController struct{}
 
 func NewClientController() *ClientController {
 	return &ClientController{}
+}
+
+// getServerHost returns the public server IP/host to use in client config generation.
+// Priority: EXTERNAL_IP env var > Request.Host (stripped of port).
+func getServerHost(ctx *gin.Context) string {
+	if extIP := os.Getenv("EXTERNAL_IP"); extIP != "" {
+		return extIP
+	}
+	host := ctx.Request.Host
+	if strings.Contains(host, ":") {
+		host = strings.Split(host, ":")[0]
+	}
+	return host
 }
 
 func (c *ClientController) AddClient(ctx *gin.Context) {
@@ -131,6 +145,7 @@ func (c *ClientController) Keygen(ctx *gin.Context) {
 		"obj":     keys,
 	})
 }
+
 func (c *ClientController) GetConfig(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, _ := strconv.Atoi(idStr)
@@ -173,15 +188,18 @@ func (c *ClientController) GetConfig(ctx *gin.Context) {
 		return
 	}
 
-	host := ctx.Request.Host
-	if strings.Contains(host, ":") {
-		host = strings.Split(host, ":")[0]
-	}
+	// Use EXTERNAL_IP env var for the host - critical for correct client configs
+	host := getServerHost(ctx)
 
 	config, err := adapter.GenerateClientConfig(&inbound, targetClient, host)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
+		return
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"obj":     config,
 	})
 }
+
