@@ -48,5 +48,13 @@ func (m *ConfigManager) GenerateFullConfig() (*xray.Config, error) {
 }
 
 func (m *ConfigManager) isVPN(p model.Protocol) bool {
-	return p == model.AmneziaWGv1 || p == model.AmneziaWGv2 || p == model.OpenVPNXOR
+	// Whitelist of Xray-native protocols. Everything else is treated as VPN
+	// and handled by adapters separately (not added to Xray config.json).
+	switch p {
+	case model.VLESS, model.VMESS, model.Trojan, model.Shadowsocks,
+		model.HTTP, model.Mixed, model.Tunnel, model.WireGuard:
+		return false
+	}
+	// All VPN protocols (amneziawg, amneziawg-v1, amneziawg-v2, openvpn, openvpn-xor, etc.)
+	return true
 }
