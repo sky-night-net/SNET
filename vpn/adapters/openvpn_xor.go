@@ -3,6 +3,7 @@ package adapters
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,21 +34,32 @@ const (
 
 func (a *OpenVPNXORAdapter) Start(inbound *model.Inbound) error {
 	iface := fmt.Sprintf("tun_snet%d", inbound.Id)
+	pidPath := fmt.Sprintf("/var/run/snet_openvpn_%d.pid", inbound.Id)
+
+	// Proactive cleanup
+	a.Stop(inbound)
+	sys.Execute(fmt.Sprintf("ip link delete %s 2>/dev/null || true", iface))
 
 	// Generate server config
-	conf, _ := a.GenerateServerConfig(inbound)
+	conf, err := a.GenerateServerConfig(inbound)
+	if err != nil {
+		return err
+	}
 	confPath := fmt.Sprintf("%s/server_%d.conf", OpenVPNConfigDir, inbound.Id)
 	os.MkdirAll(OpenVPNConfigDir, 0755)
 	os.MkdirAll("/var/log/openvpn", 0755)
 	os.WriteFile(confPath, []byte(conf), 0600)
 
-	// Proactive cleanup
-	a.Stop(inbound)
+	// Start native openvpn-xor daemon
+	binPath := os.Getenv("OPENVPN_XOR_PATH")
+	if binPath == "" {
+		binPath = "/usr/local/snet/bin/openvpn-xor"
+	}
+	if _, err := os.Stat(binPath); os.IsNotExist(err) {
+		binPath = "openvpn"
+	}
 
-	pidPath := fmt.Sprintf("/var/run/snet_openvpn_%d.pid", inbound.Id)
-
-	// Start native openvpn daemon
-	_, err := sys.Execute(fmt.Sprintf("openvpn --config %s --dev %s --daemon --writepid %s", confPath, iface, pidPath))
+	_, err = sys.Execute(fmt.Sprintf("%s --config %s --dev %s --dev-type tun --daemon --writepid %s", binPath, confPath, iface, pidPath))
 	return err
 }
 
@@ -56,9 +68,9 @@ func (a *OpenVPNXORAdapter) Stop(inbound *model.Inbound) error {
 	pidPath := fmt.Sprintf("/var/run/snet_openvpn_%d.pid", inbound.Id)
 
 	// Kill process if pid file exists
-	sys.Execute(fmt.Sprintf("if [ -f %s ]; then kill \"$(cat %s)\" && rm -f %s; fi", pidPath, pidPath, pidPath))
-	// Strictly cleanup interface
-	sys.Execute(fmt.Sprintf("ip link delete %s", iface))
+	sys.Execute(fmt.Sprintf("if [ -f %s ]; then kill -9 \"$(cat %s)\" 2>/dev/null && rm -f %s; fi", pidPath, pidPath, pidPath))
+	// Cleanup interface
+	sys.Execute(fmt.Sprintf("ip link delete %s 2>/dev/null || true", iface))
 
 	return nil
 }
@@ -71,6 +83,12 @@ func (a *OpenVPNXORAdapter) IsRunning(inbound *model.Inbound) bool {
 
 func (a *OpenVPNXORAdapter) AddClient(inbound *model.Inbound, client *model.Client) error {
 	const easyrsa = "/usr/share/easy-rsa/easyrsa"
+	// Check if cert already exists
+	certPath := filepath.Join(EasyRSADir, "pki/issued", client.Email+".crt")
+	if _, err := os.Stat(certPath); err == nil {
+		return nil
+	}
+
 	cmd := fmt.Sprintf("bash -c 'cd %s && %s --batch build-client-full %s nopass'", EasyRSADir, easyrsa, client.Email)
 	_, err := sys.Execute(cmd)
 	return err
@@ -90,12 +108,21 @@ func (a *OpenVPNXORAdapter) GenerateKeypair() (KeyPair, error) {
 
 		const easyrsa = "/usr/share/easy-rsa/easyrsa"
 		sys.Execute(fmt.Sprintf("make-cadir %s", EasyRSADir))
+		// Fix for easy-rsa 3 compatibility
 		sys.Execute(fmt.Sprintf("bash -c 'cd %s && %s init-pki && EASYRSA_BATCH=1 %s build-ca nopass && EASYRSA_BATCH=1 %s build-server-full server nopass && %s gen-dh'", EasyRSADir, easyrsa, easyrsa, easyrsa, easyrsa))
-		sys.Execute(fmt.Sprintf("openvpn --genkey --secret %s/pki/ta.key", EasyRSADir))
+		
+		binPath := os.Getenv("OPENVPN_XOR_PATH")
+		if binPath == "" {
+			binPath = "/usr/local/snet/bin/openvpn-xor"
+		}
+		if _, err := os.Stat(binPath); os.IsNotExist(err) {
+			binPath = "openvpn"
+		}
+		sys.Execute(fmt.Sprintf("%s --genkey --secret %s/pki/ta.key", binPath, EasyRSADir))
 	}
 
 	return KeyPair{
-		PublicKey: "ca_initialized", // Dummy for interface
+		PublicKey: "ca_initialized",
 	}, nil
 }
 
@@ -117,25 +144,26 @@ func (a *OpenVPNXORAdapter) GenerateServerConfig(inbound *model.Inbound) (string
 		proto = p
 	}
 
-	cipher := "AES-256-CBC"
+	cipher := "AES-256-GCM"
 	if c, ok := settings["cipher"].(string); ok {
 		cipher = c
 	}
 
-	addressFull := "10.9.0.0/24"
+	addressFull := "10.8.0.0/24"
 	if addr, ok := settings["address"].(string); ok {
 		addressFull = addr
 	}
 
-	// Simplify CIDR to network/mask
 	parts := strings.Split(addressFull, "/")
 	network := parts[0]
-	mask := "255.255.255.0" // Default for /24
+	mask := "255.255.255.0"
 
 	scrambleLine := ""
 	if scramblePassword != "" {
 		scrambleLine = fmt.Sprintf("scramble obfuscate %s", scramblePassword)
 	}
+
+	statusLog := fmt.Sprintf("/var/log/openvpn/status_%d.log", inbound.Id)
 
 	config := fmt.Sprintf(`port %d
 proto %s4
@@ -146,7 +174,7 @@ key %s/pki/private/server.key
 dh %s/pki/dh.pem
 tls-auth %s/pki/ta.key 0
 server %s %s
-ifconfig-pool-persist ipp.txt
+ifconfig-pool-persist ipp_%d.txt
 push "redirect-gateway def1 bypass-dhcp"
 push "dhcp-option DNS 1.1.1.1"
 push "dhcp-option DNS 8.8.8.8"
@@ -163,7 +191,7 @@ status %s 10
 verb 3
 mssfix 1350
 %s
-`, port, proto, EasyRSADir, EasyRSADir, EasyRSADir, EasyRSADir, EasyRSADir, network, mask, cipher, cipher, OpenVPNStatusLog, scrambleLine)
+`, port, proto, EasyRSADir, EasyRSADir, EasyRSADir, EasyRSADir, EasyRSADir, network, mask, inbound.Id, cipher, cipher, statusLog, scrambleLine)
 
 	return config, nil
 }
@@ -188,7 +216,7 @@ func (a *OpenVPNXORAdapter) GenerateClientConfig(inbound *model.Inbound, client 
 		proto = p
 	}
 
-	cipher := "AES-256-CBC"
+	cipher := "AES-256-GCM"
 	if c, ok := settings["cipher"].(string); ok {
 		cipher = c
 	}
@@ -196,11 +224,18 @@ func (a *OpenVPNXORAdapter) GenerateClientConfig(inbound *model.Inbound, client 
 	readCert := func(path string) string {
 		content, err := os.ReadFile(path)
 		if err != nil {
+			log.Printf("Failed to read cert %s: %v", path, err)
 			return ""
 		}
 		s := string(content)
 		if strings.Contains(s, "-----BEGIN CERTIFICATE-----") {
 			return s[strings.Index(s, "-----BEGIN CERTIFICATE-----"):]
+		}
+		if strings.Contains(s, "-----BEGIN PRIVATE KEY-----") {
+			return s[strings.Index(s, "-----BEGIN PRIVATE KEY-----"):]
+		}
+		if strings.Contains(s, "-----BEGIN OpenVPN Static key V1-----") {
+			return s[strings.Index(s, "-----BEGIN OpenVPN Static key V1-----"):]
 		}
 		return strings.TrimSpace(s)
 	}
@@ -254,7 +289,8 @@ mssfix 1350
 }
 
 func (a *OpenVPNXORAdapter) GetTraffic(inbound *model.Inbound) (map[string]Traffic, error) {
-	content, err := os.ReadFile(OpenVPNStatusLog)
+	statusLog := fmt.Sprintf("/var/log/openvpn/status_%d.log", inbound.Id)
+	content, err := os.ReadFile(statusLog)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +300,7 @@ func (a *OpenVPNXORAdapter) GetTraffic(inbound *model.Inbound) (map[string]Traff
 	for _, line := range lines {
 		if strings.Contains(line, ",") && strings.Contains(line, ".") {
 			parts := strings.Split(line, ",")
-			if len(parts) >= 5 && parts[0] != "Common Name" {
+			if len(parts) >= 5 && parts[0] != "Common Name" && !strings.Contains(parts[0], "UNDEF") {
 				// parts[0] is Common Name (client email)
 				// parts[2] is Bytes Received
 				// parts[3] is Bytes Sent

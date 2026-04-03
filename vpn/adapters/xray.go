@@ -220,7 +220,9 @@ func (a *XrayAdapter) GenerateClientConfig(inbound *model.Inbound, client *model
 			if sNames, ok := reality["serverNames"].([]interface{}); ok && len(sNames) > 0 {
 				q.Set("sni", fmt.Sprintf("%v", sNames[0]))
 			}
-			q.Set("pbk", fmt.Sprintf("%v", reality["publicKey"]))
+			if pbk, ok := reality["publicKey"].(string); ok && pbk != "" {
+				q.Set("pbk", pbk)
+			}
 			if sid, ok := reality["shortIds"].([]interface{}); ok && len(sid) > 0 {
 				q.Set("sid", fmt.Sprintf("%v", sid[0]))
 			}

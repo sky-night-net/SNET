@@ -69,7 +69,18 @@ func (c *ClientController) AddClient(ctx *gin.Context) {
 	inbound.Settings = string(updatedSettings)
 	db.Save(&inbound)
 
-	// Live update via gRPC
+	// Update VPN adapter if needed (for certificates etc.)
+	adapter, err := adapters.GetAdapter(inbound.Protocol)
+	if err == nil {
+		_ = adapter.AddClient(&inbound, &client)
+		// If it's a VPN protocol, trigger manager sync
+		if inbound.Protocol == "amneziawg" || inbound.Protocol == "amneziawg-v1" || inbound.Protocol == "openvpn" {
+			vpnSvc := service.GetVpnService()
+			_ = vpnSvc.GetManager().RestartInbound(&inbound)
+		}
+	}
+
+	// Live update via gRPC and config refresh for Xray
 	xraySvc := service.GetXrayService()
 	if xraySvc.IsRunning() {
 		userMap := make(map[string]any)
@@ -77,6 +88,7 @@ func (c *ClientController) AddClient(ctx *gin.Context) {
 		json.Unmarshal(userJson, &userMap)
 		_ = xraySvc.GetAPI().AddUser(string(inbound.Protocol), inbound.Tag, userMap)
 	}
+	_ = xraySvc.ApplyConfig()
 
 	ctx.JSON(http.StatusOK, gin.H{"success": true, "msg": "Client added", "obj": client})
 }
@@ -93,17 +105,20 @@ func (c *ClientController) RemoveClient(ctx *gin.Context) {
 		return
 	}
 
-	// Parse settings and remove client
+	// Find the client before removing to have its data
+	var targetClient model.Client
 	var settings map[string]any
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 	if clients, ok := settings["clients"].([]any); ok {
 		newClients := make([]any, 0)
 		for _, cl := range clients {
 			if m, ok := cl.(map[string]any); ok {
-				// Check both email and id for deletion
 				mEmail, _ := m["email"].(string)
 				mId, _ := m["id"].(string)
-				if mEmail != email && mId != email {
+				if mEmail == email || mId == email {
+					jb, _ := json.Marshal(cl)
+					json.Unmarshal(jb, &targetClient)
+				} else {
 					newClients = append(newClients, cl)
 				}
 			}
@@ -114,11 +129,22 @@ func (c *ClientController) RemoveClient(ctx *gin.Context) {
 		db.Save(&inbound)
 	}
 
-	// Live update via gRPC
+	// Update VPN adapter if needed
+	adapter, err := adapters.GetAdapter(inbound.Protocol)
+	if err == nil {
+		_ = adapter.RemoveClient(&inbound, &targetClient)
+		if inbound.Protocol == "amneziawg" || inbound.Protocol == "amneziawg-v1" || inbound.Protocol == "openvpn" {
+			vpnSvc := service.GetVpnService()
+			_ = vpnSvc.GetManager().RestartInbound(&inbound)
+		}
+	}
+
+	// Live update via gRPC and config refresh for Xray
 	xraySvc := service.GetXrayService()
 	if xraySvc.IsRunning() {
 		_ = xraySvc.GetAPI().RemoveUser(inbound.Tag, email)
 	}
+	_ = xraySvc.ApplyConfig()
 
 	ctx.JSON(http.StatusOK, gin.H{"success": true, "msg": "Client removed"})
 }

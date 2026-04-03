@@ -154,30 +154,41 @@ func (s *FirewallService) RemoveRule(rule *model.FirewallRule) error {
 }
 
 func (s *FirewallService) runIptables(action, proto string, port int, ip string, target string) error {
-	args := []string{action, "INPUT"}
-	
-	if proto != "both" && proto != "" {
-		args = append(args, "-p", proto)
+	protos := []string{proto}
+	if proto == "both" || proto == "" {
+		protos = []string{"tcp", "udp"}
 	}
-	
-	if port > 0 {
-		args = append(args, "--dport", strconv.Itoa(port))
-	}
-	
-	if ip != "" && ip != "0.0.0.0/0" {
-		args = append(args, "-s", ip)
-	}
-	
-	args = append(args, "-j", target)
-	
-	cmd := exec.Command("iptables", args...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		// If rule already exists/doesn't exist, we might get an error but we often want to ignore it for idempotency
-		if strings.Contains(string(output), "already exists") || strings.Contains(string(output), "Bad rule") {
-			return nil
+
+	for _, p := range protos {
+		args := []string{action, "INPUT"}
+		
+		if p != "" {
+			args = append(args, "-p", p)
 		}
-		return fmt.Errorf("iptables error: %v, output: %s", err, string(output))
+		
+		if port > 0 {
+			if p == "" {
+				// Cannot use --dport without protocol, but we just set it above
+			}
+			args = append(args, "--dport", strconv.Itoa(port))
+		}
+		
+		if ip != "" && ip != "0.0.0.0/0" {
+			args = append(args, "-s", ip)
+		}
+		
+		args = append(args, "-j", target)
+		
+		cmd := exec.Command("iptables", args...)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			// If rule already exists/doesn't exist, we might get an error but we often want to ignore it for idempotency
+			outStr := string(output)
+			if strings.Contains(outStr, "already exists") || strings.Contains(outStr, "Bad rule") || strings.Contains(outStr, "No chain/target/match by that name") {
+				continue
+			}
+			return fmt.Errorf("iptables error (%s): %v, output: %s", p, err, outStr)
+		}
 	}
 	return nil
 }

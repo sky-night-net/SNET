@@ -32,6 +32,8 @@ func main() {
 	// Start background telemetry collection
 	statsSvc := service.GetStatsService()
 	statsSvc.Start()
+	trafficSvc := service.GetTrafficService()
+	trafficSvc.Start()
 
 	// Initial Xray start
 	xraySvc := service.GetXrayService()

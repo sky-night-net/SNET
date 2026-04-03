@@ -25,7 +25,7 @@ const (
 	AmneziaWGv1 Protocol = "amneziawg-v1"
 	AmneziaWGv2 Protocol = "amneziawg-v2"
 	AmneziaWG   Protocol = "amneziawg" // Alias for v1 or generic
-	OpenVPNXOR  Protocol = "openvpn-xor"
+	OpenVPNXOR  Protocol = "openvpn"
 )
 
 // User represents a user account in the 3x-ui panel.
@@ -90,9 +90,13 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	}
 
 	settings := i.Settings
+	if settings == "" {
+		settings = "{}"
+	}
+
 	if i.Protocol == VLESS {
 		var s map[string]any
-		err := json.Unmarshal([]byte(i.Settings), &s)
+		err := json.Unmarshal([]byte(settings), &s)
 		if err == nil {
 			if _, ok := s["decryption"]; !ok {
 				s["decryption"] = "none"
@@ -102,38 +106,14 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		}
 	}
 
-	// Fix Shadowsocks settings: standard ciphers (non-2022) don't support the
-	// 'clients' array format in Xray. We must convert to single-user format.
-	if i.Protocol == Shadowsocks {
-		var s map[string]any
-		if err := json.Unmarshal([]byte(i.Settings), &s); err == nil {
-			method, _ := s["method"].(string)
-			if method == "" {
-				method = "chacha20-ietf-poly1305"
-			}
-			// Check if it's a 2022-style cipher (supports clients array natively)
-			is2022 := len(method) > 4 && method[:4] == "2022"
-			if !is2022 {
-				// Extract first client's password for single-user mode
-				password := ""
-				if clients, ok := s["clients"].([]any); ok && len(clients) > 0 {
-					if cm, ok := clients[0].(map[string]any); ok {
-						password, _ = cm["password"].(string)
-					}
-				}
-				if password == "" {
-					password, _ = s["password"].(string)
-				}
-				// Build single-user Shadowsocks settings
-				singleUser := map[string]any{
-					"method":   method,
-					"password": password,
-					"network":  "tcp,udp",
-				}
-				newS, _ := json.Marshal(singleUser)
-				settings = string(newS)
-			}
-		}
+	streamSettings := i.StreamSettings
+	if streamSettings == "" {
+		streamSettings = "{}"
+	}
+
+	sniffing := i.Sniffing
+	if sniffing == "" {
+		sniffing = "{}"
 	}
 
 	listenStr := fmt.Sprintf("\"%v\"", listen)
@@ -142,9 +122,9 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		Port:           i.Port,
 		Protocol:       string(i.Protocol),
 		Settings:       json_util.RawMessage(settings),
-		StreamSettings: json_util.RawMessage(i.StreamSettings),
+		StreamSettings: json_util.RawMessage(streamSettings),
 		Tag:            i.Tag,
-		Sniffing:       json_util.RawMessage(i.Sniffing),
+		Sniffing:       json_util.RawMessage(sniffing),
 	}
 }
 

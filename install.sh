@@ -100,6 +100,13 @@ install() {
     wget -qO snet_dist.tar.gz "$LATEST_URL"
     tar -xzf snet_dist.tar.gz
     mv snet-$TARGET $SNET_BIN
+    
+    # Check if openvpn-xor is in the distribution, if not, we use the one we might have uploaded
+    if [ -f "openvpn-xor" ]; then
+        mv openvpn-xor $SNET_DIR/bin/openvpn-xor
+        chmod +x $SNET_DIR/bin/openvpn-xor
+    fi
+    
     chmod +x $SNET_BIN
     rm snet_dist.tar.gz
 
@@ -114,9 +121,9 @@ install() {
     chmod +x $SNET_DIR/bin/xray
     success "Xray-core установлен в $SNET_DIR/bin/xray"
 
-    # 3. Подготовка AmneziaWG (если нужно)
-    # На Ubuntu 24.04 amneziawg-go часто ставится через PPA или готовый бинарник
-    # Для стабильности мы полагаемся на системный wireguard-tools, который мы уже поставили
+    # 3. Подготовка AmneziaWG
+    log "Установка AmneziaWG..."
+    # We rely on system wireguard-tools and our amneziawg logic in the binary
     
     optimize_system
     
@@ -125,6 +132,7 @@ PORT=$PANEL_PORT
 EXTERNAL_IP=$EXTERNAL_IP
 DB_PATH=$CONF_DIR/snet.db
 XRAY_PATH=$SNET_DIR/bin/xray
+OPENVPN_XOR_PATH=$SNET_DIR/bin/openvpn-xor
 EOF
 
     log "Настройка systemd..."

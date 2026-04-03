@@ -128,17 +128,28 @@ func (a *AmneziaWGv1Adapter) GenerateKeypair() (KeyPair, error) {
 func (a *AmneziaWGv1Adapter) GenerateServerConfig(inbound *model.Inbound) (string, error) {
 	var settings map[string]interface{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
+	if settings == nil {
+		settings = make(map[string]interface{})
+	}
 
 	var obfs map[string]interface{}
 	json.Unmarshal([]byte(inbound.StreamSettings), &obfs)
+	if obfs == nil {
+		obfs = make(map[string]interface{})
+	}
+
 	for k, v := range DEFAULT_AWG_V1_OBFUSCATION {
 		if _, ok := obfs[k]; !ok {
 			obfs[k] = v
 		}
 	}
 
-	priv := settings["private_key"].(string)
-	addr := settings["address"].(string)
+	priv, _ := settings["private_key"].(string)
+	addr, _ := settings["address"].(string)
+	if priv == "" || addr == "" {
+		return "", fmt.Errorf("AmneziaWG settings must contain private_key and address")
+	}
+
 	port := inbound.Port
 	mtu := 1420
 	if m, ok := settings["mtu"].(float64); ok {
@@ -245,6 +256,22 @@ func (a *AmneziaWGv1Adapter) GetTraffic(inbound *model.Inbound) (map[string]Traf
 		return nil, err
 	}
 
+	// Create a map of PubKey -> Email for lookup
+	var settings map[string]interface{}
+	json.Unmarshal([]byte(inbound.Settings), &settings)
+	keyToEmail := make(map[string]string)
+	if s, ok := settings["clients"].([]interface{}); ok {
+		for _, c := range s {
+			if cm, ok := c.(map[string]interface{}); ok {
+				email, _ := cm["email"].(string)
+				pub, _ := cm["publicKey"].(string)
+				if email != "" && pub != "" {
+					keyToEmail[pub] = email
+				}
+			}
+		}
+	}
+
 	lines := strings.Split(strings.TrimSpace(res), "\n")
 	trafficMap := make(map[string]Traffic)
 
@@ -253,11 +280,16 @@ func (a *AmneziaWGv1Adapter) GetTraffic(inbound *model.Inbound) (map[string]Traf
 		parts := strings.Split(lines[i], "\t")
 		if len(parts) >= 7 {
 			pubKey := parts[0]
+			email, ok := keyToEmail[pubKey]
+			if !ok {
+				continue
+			}
+			
 			var rx, tx int64
 			fmt.Sscanf(parts[5], "%d", &rx)
 			fmt.Sscanf(parts[6], "%d", &tx)
 
-			trafficMap[pubKey] = Traffic{
+			trafficMap[email] = Traffic{
 				Up:   tx,
 				Down: rx,
 			}
@@ -280,5 +312,7 @@ func (a *AmneziaWGv1Adapter) ifaceName(inbound *model.Inbound) string {
 }
 
 func init() {
-	Register(model.AmneziaWGv1, NewAmneziaWGv1Adapter())
+	adapter := NewAmneziaWGv1Adapter()
+	Register(model.AmneziaWGv1, adapter)
+	Register(model.AmneziaWG, adapter)
 }

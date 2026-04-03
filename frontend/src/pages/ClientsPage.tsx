@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Users, Plus, Trash2, Copy, Check, RefreshCw, QrCode,
-  Shield, Activity, ArrowUpRight, ArrowDownLeft
+  Shield, Activity, ArrowUpRight, ArrowDownLeft, Download
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { Card, Button, Badge, Select } from '../components/UI';
@@ -40,6 +40,44 @@ function CopyBtn({ client }: { client: any }) {
     >
       {copied ? <Check size={11} /> : <Copy size={11} />}
       {copied ? 'OK' : 'Copy'}
+    </button>
+  );
+}
+
+function DownloadBtn({ client, protocol }: { client: any; protocol: string }) {
+  const [downloading, setDownloading] = useState(false);
+  
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      const res = await api.get(`/inbounds/${client._inboundId}/clients/${client.email || client.id}/config`);
+      if (res.data.success) {
+        const content = res.data.obj;
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const ext = protocol.includes('openvpn') ? 'ovpn' : 'conf';
+        a.download = `${client.email || client.id || 'config'}_${protocol}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch { /* ignore */ } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={downloading}
+      title="Download Config File"
+      style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11 }}
+    >
+      <Download size={11} />
+      {downloading ? '...' : 'Download'}
     </button>
   );
 }
@@ -288,21 +326,27 @@ export default function ClientsPage() {
                               }
                             </td>
                             <td style={{ padding: '12px 18px', display: 'flex', gap: 6 }}>
-                              <CopyBtn client={{ ...client, _inboundId: ib.id }} />
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    const res = await api.get(`/inbounds/${ib.id}/clients/${client.email || client.id}/config`);
-                                    if (res.data.success) {
-                                      openQr(res.data.obj, client.email || client.id || 'Config');
-                                    }
-                                  } catch { /* ignore */ }
-                                }}
-                                style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11 }}
-                                title="QR Code"
-                              >
-                                <QrCode size={13} />
-                              </button>
+                              {(proto.startsWith('amneziawg') || proto.includes('openvpn')) ? (
+                                <DownloadBtn client={{ ...client, _inboundId: ib.id }} protocol={proto} />
+                              ) : (
+                                <>
+                                  <CopyBtn client={{ ...client, _inboundId: ib.id }} />
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const res = await api.get(`/inbounds/${ib.id}/clients/${client.email || client.id}/config`);
+                                        if (res.data.success) {
+                                          openQr(res.data.obj, client.email || client.id || 'Config');
+                                        }
+                                      } catch { /* ignore */ }
+                                    }}
+                                    style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11 }}
+                                    title="QR Code"
+                                  >
+                                    <QrCode size={13} />
+                                  </button>
+                                </>
+                              )}
                             </td>
                             <td style={{ padding: '12px 14px', textAlign: 'right' }}>
                               <button

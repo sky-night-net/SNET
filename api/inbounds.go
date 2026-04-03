@@ -19,7 +19,7 @@ func NewInboundController() *InboundController {
 }
 
 func (c *InboundController) applyService(ib *model.Inbound) {
-	if ib.Protocol == "amneziawg" || ib.Protocol == "amneziawg-v1" || ib.Protocol == "amneziawg-v2" || ib.Protocol == "openvpn-xor" {
+	if ib.Protocol == "amneziawg" || ib.Protocol == "amneziawg-v1" || ib.Protocol == "amneziawg-v2" || ib.Protocol == "openvpn" {
 		vpnSvc := service.GetVpnService()
 		_ = vpnSvc.GetManager().RestartInbound(ib)
 	} else {
@@ -95,7 +95,7 @@ func (c *InboundController) DeleteInbound(ctx *gin.Context) {
 
 	database.GetDB().Delete(&inbound)
 
-	if inbound.Protocol == "amneziawg" || inbound.Protocol == "amneziawg-v1" || inbound.Protocol == "amneziawg-v2" || inbound.Protocol == "openvpn-xor" {
+	if inbound.Protocol == "amneziawg" || inbound.Protocol == "amneziawg-v1" || inbound.Protocol == "amneziawg-v2" || inbound.Protocol == "openvpn" {
 		service.GetVpnService().GetManager().StopInbound(&inbound)
 	} else {
 		service.GetXrayService().ApplyConfig()
