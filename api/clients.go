@@ -13,6 +13,7 @@ import (
 	"github.com/sky-night-net/snet/database/model"
 	"github.com/sky-night-net/snet/service"
 	"github.com/sky-night-net/snet/vpn/adapters"
+	"github.com/sky-night-net/snet/xray"
 )
 
 type ClientController struct{}
@@ -51,36 +52,62 @@ func (c *ClientController) AddClient(ctx *gin.Context) {
 		return
 	}
 
-	// Parse settings and add client
+	// 1. Ensure ClientStats entry exists (immediate visibility)
+	var stat xray.ClientTraffic
+	if err := db.Where("inbound_id = ? AND email = ?", inbound.Id, client.Email).First(&stat).Error; err != nil {
+		// Create if not exists
+		stat = xray.ClientTraffic{
+			InboundId:  inbound.Id,
+			Email:      client.Email,
+			Enable:     client.Enable,
+			ExpiryTime: client.ExpiryTime,
+			Total:      client.TotalGB * 1024 * 1024 * 1024,
+		}
+		if err := db.Create(&stat).Error; err != nil {
+			log.Printf("Failed to create ClientStats: %v", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": "Database error: " + err.Error()})
+			return
+		}
+	}
+
+	// 2. Add to JSON settings
 	var settings map[string]any
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 	if settings == nil {
 		settings = make(map[string]any)
 	}
 
-	clients, ok := settings["clients"].([]any)
-	if !ok {
-		clients = make([]any, 0)
+	clients, _ := settings["clients"].([]any)
+	// Deduplicate in JSON if needed
+	newClients := make([]any, 0)
+	for _, cl := range clients {
+		if m, ok := cl.(map[string]any); ok {
+			if m["email"] != client.Email {
+				newClients = append(newClients, cl)
+			}
+		}
 	}
-	clients = append(clients, client)
-	settings["clients"] = clients
+	newClients = append(newClients, client)
+	settings["clients"] = newClients
 
 	updatedSettings, _ := json.Marshal(settings)
 	inbound.Settings = string(updatedSettings)
-	db.Save(&inbound)
+	if err := db.Save(&inbound).Error; err != nil {
+		log.Printf("Failed to save Inbound settings: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": "Database error: " + err.Error()})
+		return
+	}
 
-	// Update VPN adapter if needed (for certificates etc.)
+	// 3. Sync services
 	adapter, err := adapters.GetAdapter(inbound.Protocol)
 	if err == nil {
 		_ = adapter.AddClient(&inbound, &client)
-		// If it's a VPN protocol, trigger manager sync
 		if inbound.Protocol == "amneziawg" || inbound.Protocol == "amneziawg-v1" || inbound.Protocol == "openvpn" {
 			vpnSvc := service.GetVpnService()
 			_ = vpnSvc.GetManager().RestartInbound(&inbound)
 		}
 	}
 
-	// Live update via gRPC and config refresh for Xray
 	xraySvc := service.GetXrayService()
 	if xraySvc.IsRunning() {
 		userMap := make(map[string]any)
@@ -96,7 +123,7 @@ func (c *ClientController) AddClient(ctx *gin.Context) {
 func (c *ClientController) RemoveClient(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, _ := strconv.Atoi(idStr)
-	email := ctx.Param("clientId") // clientId is email in our frontend
+	email := ctx.Param("clientId")
 
 	db := database.GetDB()
 	var inbound model.Inbound
@@ -105,7 +132,10 @@ func (c *ClientController) RemoveClient(ctx *gin.Context) {
 		return
 	}
 
-	// Find the client before removing to have its data
+	// Delete from ClientStats table
+	db.Where("inbound_id = ? AND email = ?", inbound.Id, email).Delete(&xray.ClientTraffic{})
+
+	// Remove from JSON settings
 	var targetClient model.Client
 	var settings map[string]any
 	json.Unmarshal([]byte(inbound.Settings), &settings)
@@ -129,7 +159,7 @@ func (c *ClientController) RemoveClient(ctx *gin.Context) {
 		db.Save(&inbound)
 	}
 
-	// Update VPN adapter if needed
+	// Sync services
 	adapter, err := adapters.GetAdapter(inbound.Protocol)
 	if err == nil {
 		_ = adapter.RemoveClient(&inbound, &targetClient)
@@ -139,7 +169,6 @@ func (c *ClientController) RemoveClient(ctx *gin.Context) {
 		}
 	}
 
-	// Live update via gRPC and config refresh for Xray
 	xraySvc := service.GetXrayService()
 	if xraySvc.IsRunning() {
 		_ = xraySvc.GetAPI().RemoveUser(inbound.Tag, email)

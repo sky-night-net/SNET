@@ -17,14 +17,17 @@ func NewXrayConfigBuilder() *XrayConfigBuilder {
 			LogConfig: json.RawMessage(`{"loglevel": "warning"}`),
 			InboundConfigs: []xray.InboundConfig{
 				{
-					Protocol: "vless",
+					Protocol: "dokodemo-door",
 					Port:     10085, // Default API port for 3x-ui style
 					Listen:   json_util.RawMessage(`"127.0.0.1"`),
 					Tag:      "api",
-					Settings: json.RawMessage(`{"decryption":"none"}`),
+					Settings: json.RawMessage(`{"address":"127.0.0.1"}`),
 				},
 			},
 			OutboundConfigs: json.RawMessage(`[{"protocol": "freedom"}]`),
+			API:             json.RawMessage(`{"tag": "api", "services": ["HandlerService", "StatsService"]}`),
+			Stats:           json.RawMessage(`{}`),
+			Policy:          json.RawMessage(`{"levels": {"0": {"statsUserUplink": true, "statsUserDownlink": true}}, "system": {"statsInboundUplink": true, "statsInboundDownlink": true}}`),
 		},
 	}
 }

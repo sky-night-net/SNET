@@ -93,7 +93,11 @@ func (s *TrafficService) sync() {
 				continue
 			}
 
+			var totalUp, totalDown int64
 			for email, t := range trafficMap {
+				totalUp += t.Up
+				totalDown += t.Down
+
 				var stat xray.ClientTraffic
 				if err := db.Where("inbound_id = ? AND email = ?", ib.Id, email).First(&stat).Error; err == nil {
 					if t.Up > stat.Up || t.Down > stat.Down {
@@ -112,6 +116,14 @@ func (s *TrafficService) sync() {
 						Enable:    true,
 					})
 				}
+			}
+
+			// Roll up to Inbound
+			if totalUp > ib.Up || totalDown > ib.Down {
+				db.Model(&model.Inbound{}).Where("id = ?", ib.Id).Updates(map[string]interface{}{
+					"up":   totalUp,
+					"down": totalDown,
+				})
 			}
 		}
 	}
