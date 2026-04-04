@@ -167,9 +167,10 @@ func (a *OpenVPNXORAdapter) GenerateServerConfig(inbound *model.Inbound) (string
 	mask := "255.255.255.0"
 
 	scrambleLine := ""
-	if scramblePassword != "" {
-		scrambleLine = fmt.Sprintf("scramble obfuscate %s", scramblePassword)
+	if scramblePassword == "" {
+		scramblePassword = "SNET-XOR-MASK-2026"
 	}
+	scrambleLine = fmt.Sprintf("scramble obfuscate %s", scramblePassword)
 
 	statusLog := fmt.Sprintf("/var/log/openvpn/status_%d.log", inbound.Id)
 
@@ -249,9 +250,10 @@ func (a *OpenVPNXORAdapter) GenerateClientConfig(inbound *model.Inbound, client 
 	}
 
 	scrambleLine := ""
-	if scramblePassword != "" {
-		scrambleLine = fmt.Sprintf("scramble obfuscate %s", scramblePassword)
+	if scramblePassword == "" {
+		scramblePassword = "SNET-XOR-MASK-2026"
 	}
+	scrambleLine = fmt.Sprintf("scramble obfuscate %s", scramblePassword)
 
 	config := fmt.Sprintf(`client
 dev tun
