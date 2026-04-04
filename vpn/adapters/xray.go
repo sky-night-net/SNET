@@ -90,6 +90,18 @@ func (a *XrayAdapter) GenerateClientConfig(inbound *model.Inbound, client *model
 	if uid == "" {
 		uid = client.Password
 	}
+	// Fallback to searching in settings if still empty
+	if uid == "" {
+		if clients, ok := settings["clients"].([]interface{}); ok && len(clients) > 0 {
+			if first, ok := clients[0].(map[string]interface{}); ok {
+				if id, ok := first["id"].(string); ok && id != "" {
+					uid = id
+				} else if p, ok := first["password"].(string); ok && p != "" {
+					uid = p
+				}
+			}
+		}
+	}
 
 	if protocol == "vmess" {
 		// VMess uses a JSON config base64-encoded
@@ -99,7 +111,7 @@ func (a *XrayAdapter) GenerateClientConfig(inbound *model.Inbound, client *model
 			"add":  host,
 			"port": port,
 			"id":   uid,
-			"aid":  "0",
+			"aid":  0,
 			"scy":  "auto",
 			"net":  stream["network"],
 			"type": "none",
